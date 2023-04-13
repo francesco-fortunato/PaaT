@@ -23,4 +23,4 @@ This project aims to develop a pet tracking system that utilizes an ESP32 Heltec
 
 ## Video
 
-link to the video (see below).
+[Link to Youtube Video](https://youtu.be/oAYv7sOTY6s)
