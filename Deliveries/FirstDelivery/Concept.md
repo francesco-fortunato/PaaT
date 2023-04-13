@@ -3,6 +3,8 @@
 ## Introduction 
 Pet tracking is an essential aspect of pet ownership, and it can be challenging to keep an eye on pets at all times. This project aims to develop a pet tracking system that utilizes an ESP32 Heltec LoRa v2 and GPS module to track pets' movements. The system allows pet owners to monitor their pets' location, view their pets' movement history, and receive alerts when their pets leave a designated area.
 
+
+
 ## Features
 The pet tracking system has the following features:
 - Real-time location tracking: The system utilizes GPS technology to track pets' location in real-time.
