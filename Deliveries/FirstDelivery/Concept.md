@@ -8,7 +8,6 @@ Pet tracking is an essential aspect of pet ownership, and it can be challenging 
 ## Features
 The pet tracking system has the following features:
 - Real-time location tracking: The system utilizes GPS technology to track pets' location in real-time.
-- Receiver: The receiver is a device that can receive signals trasmitted by the pet tracker.
 - Geofencing: Pet owners can set up a designated area for their pets, and the system will send an alert when the pet leaves the designated area.
 - Movement history: The system keeps track of pets' movements and displays the data in a graphical format for pet owners to review.
 - Notifications: Pet owners receive notifications via email when their pets leave the designated area.
