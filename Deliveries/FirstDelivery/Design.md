@@ -30,9 +30,6 @@ The pet tracking system uses several core algorithms to function correctly. The 
 Network Protocols
 The pet tracking system uses the LoRaWAN protocol to communicate between the ESP32 v2 Heltec LoRa and GPS module and the cloud service. LoRaWAN is a low-power, wide-area network protocol that allows for long-range communication between devices.
 
-APIs Used
-The pet tracking system uses several APIs to interact with the cloud service. The APIs are responsible for storing location data, analyzing the data, and sending alerts to the pet owner.
-
 ## Network Architecture
 
                 +-------------+
