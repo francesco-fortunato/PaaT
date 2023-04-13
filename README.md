@@ -15,8 +15,8 @@ a brief description (1 paragraph) of the main idea of the product/service.
 
 ## Documents
 
-- [Concept]
-- [Design]
+- [Concept](Deliveries/First Delivery/Concept.md)
+- [Design](Deliveries/First Delivery/Design.md)
 - [Evaluation]
 
 links to the documents presenting the Concept, Design, Evaluation (see below).
