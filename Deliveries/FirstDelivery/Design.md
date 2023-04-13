@@ -1,7 +1,7 @@
 # Design
 
 ## Conceptual Architecture
-The pet tracking system consists of two main hardware components, an ESP32 v2 Heltec LoRa and GPS module, a battery, a buzzer, and an LED. The ESP32 is responsible for collecting location data from the GPS module, processing the data, and sending it to a cloud service for storage and analysis. The buzzer and LED are used to alert the pet owner when their pet leaves the designated area.
+The pet tracking system consists of two main hardware components, an ESP32 v2 Heltec LoRa and GPS module, a battery, a buzzer,. The ESP32 is responsible for collecting location data from the GPS module, processing the data, and sending it to a cloud service for storage and analysis. The buzzer and LED are used to alert the pet owner when their pet leaves the designated area.
 
 The cloud service is responsible for storing the pet's location data, analyzing the data, and sending alerts to the pet owner when their pet leaves the designated area. The pet owner can access the cloud service through a mobile app or web interface.
 
