@@ -1,5 +1,5 @@
-# PaaT
-Internet-of-Things project.
+# PaaT - Pet as a Thing!
+Internet of Things project for the Internet of Things Algorithm and Services 2022/23 course held by Andrea Vitaletti and Ioannis Chatzigiannakis.
 
 ## People
 
@@ -11,15 +11,15 @@ Internet-of-Things project.
 
 ## Description
 
-a brief description (1 paragraph) of the main idea of the product/service.
+This project aims to develop a pet tracking system that utilizes an ESP32 Heltec LoRa v2 and GPS module to track pets' movements. The system allows pet owners to monitor their pets' location, view their pets' movement history, and receive alerts when their pets leave a designated area.
 
 ## Documents
 
+### First Delivery
+
 - [Concept](Deliveries/FirstDelivery/Concept.md)
 - [Design](Deliveries/FirstDelivery/Design.md)
-- [Evaluation]
-
-links to the documents presenting the Concept, Design, Evaluation (see below).
+- [Evaluation](Deliveries/FirstDelivery/Evaluation.md)
 
 ## Video
 
