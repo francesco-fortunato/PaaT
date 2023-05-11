@@ -14,7 +14,7 @@ The ESP32 LoRa devices used in the IoT pet tracking system will be evaluated bas
 - Evaluation of End-user Response Time:
 The response time of the IoT pet tracking system will be evaluated also from an end-user point of view. This will involve measuring the time taken for the system to detect the location of the pet, process the data, and send it to the cloud. The response time will be measured through the response time, and the data obtained will be used to calculate the average response time.
 
-## When the First Complete Version of the System is Ready for Use, :
+## When the First Complete Version of the System is Ready for Use :
 
 - Evaluation of Network Technologies:
 The performance of the LoRa network will be evaluated based on its reliability, scalability, and security. The network will be tested under different conditions, such as varying distances between the devices, different network loads, and network interference. The network analyzer tool, such as Wireshark, will be used to capture and analyze the network traffic, and performance metrics will be recorded, such as packet delivery ratio, latency, and jitter.
