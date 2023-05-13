@@ -3,7 +3,24 @@
   <div id="map"></div>
 </div>
 <div
+  id="light"
+  class="map-button"
+  (click)="toggleLight()"
+  [style.background-color]="lightOn ? '#c0c0ff' : '#ffffff'"
+>
+  <img src="assets/light.png" height="32px" />
+</div>
+<div
+  id="sound"
+  class="map-button"
+  (click)="toggleSound()"
+  [style.background-color]="soundOn ? '#c0c0ff' : '#ffffff'"
+>
+  <img src="assets/sound.png" height="32px" />
+</div>
+<div
   id="fence"
+  class="map-button"
   (click)="toggleFenceOptions()"
   [style.background-color]="editingFence ? '#c0c0ff' : '#ffffff'"
 >
@@ -15,9 +32,9 @@
   </div>
   <div (click)="removeFence()">Delete GeoFence</div>
 </div>
-<div id="pet" (click)="gotoPet()">
+<div id="pet" class="map-button" (click)="gotoPet()">
   <img src="assets/pet.png" height="32px" />
 </div>
-<div id="gps" (click)="gotoGps()">
+<div id="gps" class="map-button" (click)="gotoGps()">
   <img src="assets/gps.png" height="32px" />
 </div>

@@ -25,6 +25,8 @@ export class MapComponent {
   });
   editingFence: boolean = false;
   fenceMenuOpen: boolean = false;
+  lightOn: boolean = false;
+  soundOn: boolean = false;
 
   private initMap(): void {
     this.map = L.map('map', {
@@ -67,6 +69,8 @@ export class MapComponent {
       this.initGps();
       this.trackPet();
       this.trackGps();
+      // this.lightOn =  this.petService.lightStatus();
+      // this.soundOn = this.petService.soundStatus();
     }
   }
 
@@ -102,6 +106,10 @@ export class MapComponent {
   gotoGps(): void {
     if (this.map && this.gps) {
       this.map.flyTo(this.gps.getLatLng(), 18);
+    } else {
+      alert(
+        'PaaT cannot access your location. Please turn on GPS and check your browser settings.'
+      );
     }
   }
 
@@ -111,8 +119,27 @@ export class MapComponent {
     }
   }
 
+  toggleLight(): void {
+    if (this.lightOn) {
+      this.lightOn = false;
+      // this.petService.lightOff();
+    } else {
+      this.lightOn = true;
+      // this.petService.lightOn();
+    }
+  }
+
+  toggleSound(): void {
+    if (this.soundOn) {
+      this.soundOn = false;
+      //   this.petService.soundOff();
+    } else {
+      this.soundOn = true;
+      //   this.petService.soundOn();
+    }
+  }
+
   toggleFenceOptions(): void {
-    console.log(this.editingFence, this.fenceMenuOpen, this.geoFence);
     if (this.map) {
       if (!this.geoFence) {
         if (this.editingFence) {
@@ -139,7 +166,6 @@ export class MapComponent {
           const latLng = this.geoFence.getLatLngs();
           console.log(latLng);
           // this.petService.saveGeofence(this.geoFence.getLatLngs());
-          console.log(this.geoFence.getLatLngs());
         } else if (this.fenceMenuOpen) {
           this.fenceMenuOpen = false;
         } else {
@@ -153,7 +179,7 @@ export class MapComponent {
     this.fenceMenuOpen = false;
     this.editingFence = true;
     if (this.map && this.geoFence) {
-      this.map.pm.enableGlobalEditMode();
+      this.geoFence.pm.enable();
     }
   }
 
@@ -182,13 +208,19 @@ export class MapComponent {
   }
   //update periodically the gps position
   trackGps(): void {
-    setInterval(() => {
+    let gpsTrack = setInterval(() => {
       if (this.map) {
         this.map.locate({ watch: true, enableHighAccuracy: true });
         this.map.on('locationfound', (e) => {
           if (this.gps) {
             this.gps.setLatLng(e.latlng);
           }
+        });
+        this.map.once('locationerror', (e) => {
+          clearInterval(gpsTrack);
+          alert(
+            'PaaT cannot access your location. Please turn on GPS and check your browser settings.'
+          );
         });
       }
     }, 10000);
