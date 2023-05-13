@@ -1,5 +1,19 @@
+<img id="paat-logo" src="assets/paat.png" />
 <div class="map-container">
   <div id="map"></div>
+</div>
+<div
+  id="fence"
+  (click)="toggleFenceOptions()"
+  [style.background-color]="editingFence ? '#c0c0ff' : '#ffffff'"
+>
+  <img src="assets/fence.png" height="32px" />
+</div>
+<div id="fencemenu" *ngIf="fenceMenuOpen">
+  <div (click)="editFence()" style="border-bottom: 1px solid black">
+    Edit GeoFence
+  </div>
+  <div (click)="removeFence()">Delete GeoFence</div>
 </div>
 <div id="pet" (click)="gotoPet()">
   <img src="assets/pet.png" height="32px" />

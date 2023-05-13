@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import * as L from 'leaflet';
 import { PetService } from '../pet.service';
+import '@geoman-io/leaflet-geoman-free';
 
 @Component({
   selector: 'app-map',
@@ -22,13 +23,22 @@ export class MapComponent {
     iconSize: [40, 40],
     iconAnchor: [20, 20],
   });
+  editingFence: boolean = false;
+  fenceMenuOpen: boolean = false;
 
   private initMap(): void {
     this.map = L.map('map', {
       center: [41.891106645704795, 12.503608718298109],
       zoom: 18,
       attributionControl: false,
+      zoomControl: false,
     });
+
+    L.control
+      .zoom({
+        position: 'topright',
+      })
+      .addTo(this.map);
 
     const tiles = L.tileLayer(
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -41,8 +51,6 @@ export class MapComponent {
     tiles.addTo(this.map);
 
     this.geoFence = L.polygon(this.petService.getGeofence(), {
-      color: 'green',
-      fillColor: 'green',
       fillOpacity: 0.3,
     });
     this.geoFence.addTo(this.map);
@@ -53,8 +61,10 @@ export class MapComponent {
   ngAfterViewInit(): void {
     this.initMap();
     if (this.map) {
-      this.initGps();
       this.initPet();
+      this.gotoPet();
+
+      this.initGps();
       this.trackPet();
       this.trackGps();
     }
@@ -69,7 +79,6 @@ export class MapComponent {
             icon: this.gpsIcon,
           });
           this.gps.addTo(this.map);
-          this.map.flyTo(e.latlng, 18);
         }
       });
     }
@@ -99,6 +108,61 @@ export class MapComponent {
   gotoPet(): void {
     if (this.map && this.pet) {
       this.map.flyTo(this.pet.getLatLng(), 18);
+    }
+  }
+
+  toggleFenceOptions(): void {
+    console.log(this.editingFence, this.fenceMenuOpen, this.geoFence);
+    if (this.map) {
+      if (!this.geoFence) {
+        if (this.editingFence) {
+          this.editingFence = false;
+          this.map.pm.disableGlobalEditMode();
+        } else {
+          this.fenceMenuOpen = false;
+          this.editingFence = true;
+          this.map.pm.enableDraw('Polygon', {});
+          this.map.on('pm:create', (e) => {
+            if (this.map) {
+              if (e.layer instanceof L.Polygon) {
+                this.geoFence = e.layer;
+                this.geoFence.addTo(this.map);
+                this.editingFence = false;
+              }
+            }
+          });
+        }
+      } else {
+        if (this.editingFence) {
+          this.map.pm.disableGlobalEditMode();
+          this.editingFence = false;
+          const latLng = this.geoFence.getLatLngs();
+          console.log(latLng);
+          // this.petService.saveGeofence(this.geoFence.getLatLngs());
+          console.log(this.geoFence.getLatLngs());
+        } else if (this.fenceMenuOpen) {
+          this.fenceMenuOpen = false;
+        } else {
+          this.fenceMenuOpen = true;
+        }
+      }
+    }
+  }
+
+  editFence(): void {
+    this.fenceMenuOpen = false;
+    this.editingFence = true;
+    if (this.map && this.geoFence) {
+      this.map.pm.enableGlobalEditMode();
+    }
+  }
+
+  removeFence(): void {
+    this.fenceMenuOpen = false;
+    if (this.map && this.geoFence) {
+      this.map.removeLayer(this.geoFence);
+      this.geoFence = undefined;
+      this.petService.removeGeofence();
     }
   }
 

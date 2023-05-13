@@ -23,4 +23,12 @@ export class PetService {
       [41.89136368987694, 12.477959781944294],
     ];
   }
+
+  saveGeofence(latLngList: { lat: number; lng: number }[]) {
+    //send to server
+  }
+
+  removeGeofence() {
+    //send to server
+  }
 }

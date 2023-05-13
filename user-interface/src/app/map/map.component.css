@@ -1,41 +1,120 @@
-.map-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-  
-  #map {
-    height: 100%;
-  }
-  
-  #gps {
-    z-index: 400;
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    bottom: 15px;
-    right: 15px;
-    border-radius: 50%;
-    width: 64px;
-    height: 64px;
-    background-color: white;
-    cursor: pointer;
-  }
+#paat-logo {
+  z-index: 401;
+  position: absolute;
+  height: 100px;
+}
 
-  #pet {
-    z-index: 400;
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    bottom: 86px;
-    right: 15px;
-    border-radius: 50%;
-    width: 64px;
-    height: 64px;
-    background-color: white;
-    cursor: pointer;
-  }
+.map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#map {
+  height: 100%;
+}
+
+#gps {
+  z-index: 400;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 15px;
+  right: 15px;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  background-color: white;
+  cursor: pointer;
+}
+
+#pet {
+  z-index: 400;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 86px;
+  right: 15px;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  background-color: white;
+  cursor: pointer;
+}
+
+#fence {
+  z-index: 400;
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  bottom: 159px;
+  right: 15px;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  background-color: white;
+  cursor: pointer;
+}
+
+#fencemenu {
+  z-index: 400;
+  position: absolute;
+  bottom: 159px;
+  right: 86px;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 25px;
+  border: 1px solid black;
+}
+#fencemenu div {
+  color: black;
+  font: bold 24px Sans-Serif;
+  text-align: center;
+  padding: 10px;
+}
+
+::ng-deep .leaflet-control {
+  margin: 0 !important;
+  border: none !important;
+}
+
+::ng-deep .leaflet-control-zoom-in {
+  z-index: 400;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  border-radius: 50% !important;
+  width: 64px !important;
+  height: 64px !important;
+  background-color: white;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px !important;
+  font-family: initial;
+  font-weight: bold;
+}
+
+::ng-deep .leaflet-control-zoom-out {
+  z-index: 400;
+  position: absolute;
+  top: 86px;
+  right: 15px;
+  border-radius: 50% !important;
+  width: 64px !important;
+  height: 64px !important;
+  background-color: white;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px !important;
+  font-family: initial;
+  font-weight: bold;
+}
