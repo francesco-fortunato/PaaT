@@ -6,10 +6,17 @@ import { Injectable } from '@angular/core';
 export class PetService {
   constructor() {}
 
-  getPetPosition(): { lat: number; lng: number; timestamp: number } {
+  getPetStatus(): {
+    online: boolean;
+    position: { lat: number; lng: number };
+    timestamp: number;
+  } {
     return {
-      lat: 41.8941 + (Math.random() - 0.5) / 100,
-      lng: 12.495 + (Math.random() - 0.5) / 100,
+      online: true,
+      position: {
+        lat: 41.8941 + (Math.random() - 0.5) / 100,
+        lng: 12.495 + (Math.random() - 0.5) / 100,
+      },
       timestamp: Date.now() - 10000,
     };
   }

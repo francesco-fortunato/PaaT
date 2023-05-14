@@ -10,8 +10,8 @@ import '@geoman-io/leaflet-geoman-free';
 })
 export class MapComponent {
   private map: L.Map | undefined;
-  private gps: L.Marker | undefined;
-  private pet: L.Marker | undefined;
+  gps: L.Marker | undefined;
+  pet: L.Marker | undefined;
   private geoFence: L.Polygon<any> | undefined;
   private gpsIcon = L.icon({
     iconUrl: 'assets/gps.png',
@@ -27,6 +27,14 @@ export class MapComponent {
   fenceMenuOpen: boolean = false;
   lightOn: boolean = false;
   soundOn: boolean = false;
+  timelineOpen: boolean = false;
+  petStatus:
+    | {
+        online: boolean;
+        position: { lat: number; lng: number };
+        timestamp: number;
+      }
+    | undefined;
 
   private initMap(): void {
     this.map = L.map('map', {
@@ -64,7 +72,6 @@ export class MapComponent {
     this.initMap();
     if (this.map) {
       this.initPet();
-      this.gotoPet();
 
       this.initGps();
       this.trackPet();
@@ -89,17 +96,18 @@ export class MapComponent {
   }
 
   initPet(): void {
-    if (this.map) {
-      this.pet = L.marker(this.petService.getPetPosition(), {
+    this.petStatus = this.petService.getPetStatus();
+    if (this.map && this.petStatus?.online) {
+      this.pet = L.marker(this.petStatus.position, {
         icon: this.petIcon,
       });
       this.pet.bindPopup(
         'Last position update: ' +
-          new Date(this.petService.getPetPosition().timestamp).toLocaleString(
-            'it'
-          )
+          new Date(this.petStatus.timestamp).toLocaleString('it')
       );
       this.pet.addTo(this.map);
+
+      this.gotoPet();
     }
   }
 
@@ -116,6 +124,8 @@ export class MapComponent {
   gotoPet(): void {
     if (this.map && this.pet) {
       this.map.flyTo(this.pet.getLatLng(), 18);
+    } else {
+      alert('PaaT cannot access actual Pet location.');
     }
   }
 
@@ -137,6 +147,10 @@ export class MapComponent {
       this.soundOn = true;
       //   this.petService.soundOn();
     }
+  }
+
+  toggleTimeline(): void {
+    this.timelineOpen = !this.timelineOpen;
   }
 
   toggleFenceOptions(): void {
@@ -195,20 +209,27 @@ export class MapComponent {
   // update periodically the pet position
   trackPet(): void {
     setInterval(() => {
-      if (this.pet) {
-        this.pet.setLatLng(this.petService.getPetPosition());
+      this.petStatus = this.petService.getPetStatus();
+      if (this.petStatus?.online) {
+        if (!this.pet) {
+          this.pet = L.marker(this.petStatus.position, {
+            icon: this.petIcon,
+          });
+        } else {
+          this.pet.setLatLng(this.petStatus.position);
+        }
         this.pet.bindPopup(
           'Last position update: ' +
-            new Date(this.petService.getPetPosition().timestamp).toLocaleString(
-              'it'
-            )
+            new Date(this.petStatus.timestamp).toLocaleString('it')
         );
+      } else {
+        this.pet = undefined;
       }
     }, 10000);
   }
   //update periodically the gps position
   trackGps(): void {
-    let gpsTrack = setInterval(() => {
+    setInterval(() => {
       if (this.map) {
         this.map.locate({ watch: true, enableHighAccuracy: true });
         this.map.on('locationfound', (e) => {
@@ -217,10 +238,7 @@ export class MapComponent {
           }
         });
         this.map.once('locationerror', (e) => {
-          clearInterval(gpsTrack);
-          alert(
-            'PaaT cannot access your location. Please turn on GPS and check your browser settings.'
-          );
+          this.gps = undefined;
         });
       }
     }, 10000);

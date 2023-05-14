@@ -61,12 +61,16 @@
   padding: 10px;
 }
 
-#sound {
+#timeline {
   bottom: 232px;
 }
 
-#light {
+#sound {
   bottom: 305px;
+}
+
+#light {
+  bottom: 378px;
 }
 
 ::ng-deep .leaflet-control {
@@ -98,4 +102,9 @@
 
 ::ng-deep .leaflet-control-zoom-out {
   top: 86px;
+}
+
+.button-disabled {
+  opacity: 0.8;
+  background-color: lightgray;
 }

@@ -19,6 +19,14 @@
   <img src="assets/sound.png" height="32px" />
 </div>
 <div
+  id="timeline"
+  class="map-button"
+  (click)="toggleTimeline()"
+  [style.background-color]="timelineOpen ? '#c0c0ff' : '#ffffff'"
+>
+  <img src="assets/timeline.png" height="32px" />
+</div>
+<div
   id="fence"
   class="map-button"
   (click)="toggleFenceOptions()"
@@ -32,9 +40,19 @@
   </div>
   <div (click)="removeFence()">Delete GeoFence</div>
 </div>
-<div id="pet" class="map-button" (click)="gotoPet()">
+<div
+  id="pet"
+  class="map-button"
+  [class.button-disabled]="!pet"
+  (click)="gotoPet()"
+>
   <img src="assets/pet.png" height="32px" />
 </div>
-<div id="gps" class="map-button" (click)="gotoGps()">
+<div
+  id="gps"
+  class="map-button"
+  [class.button-disabled]="!gps"
+  (click)="gotoGps()"
+>
   <img src="assets/gps.png" height="32px" />
 </div>
