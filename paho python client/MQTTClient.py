@@ -43,7 +43,7 @@ def on_connect(_client, _userdata, _flags, result):
     """Subscribe to input topic"""
 
     print('Connected ' + str(result))
-    myMQTTClient.publish(MQTT_PUB_TOPIC, "ciao", 0)
+    myMQTTClient.publish(MQTT_PUB_TOPIC, "Ciao", 0)
     print("ho inviato ciao")
 
     print('Subscribing to ' + MQTT_SUB_TOPIC)
