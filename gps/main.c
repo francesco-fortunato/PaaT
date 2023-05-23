@@ -10,7 +10,7 @@
  *
  * @authors      Andrea Sepielli <andreasepielli97@gmail.com>,
  *               Francesco Fortunato <francesco.fortunato1999@gmail.com>,
- *               Valerio Francione <>
+ *               Valerio Francione <francione97@gmail.com>
  *
  * @}
  */
@@ -35,7 +35,7 @@
 #define BUF_SIZE 1024
 
 #define MQTT_BROKER_ADDR "192.168.1.1" // After connecting to the hotspot with the pc, insert here the ifconfig wlo1
-#define MQTT_TOPIC "gps"
+#define MQTT_TOPIC "sensor/1/gps"
 #define MQTT_VERSION_v311 4 /* MQTT v3.1.1 version is 4 */
 #define COMMAND_TIMEOUT_MS 4000
 
@@ -167,7 +167,7 @@ static void gps_rx_cb(void *arg, uint8_t data)
                 message.payload = msg;
                 message.payloadlen = strlen(message.payload);
 
-                char *topic = "gps";
+                char *topic = MQTT_TOPIC;
 
                 int rc;
                 if ((rc = MQTTPublish(&client, topic, &message)) < 0)
