@@ -108,3 +108,30 @@
   opacity: 0.8;
   background-color: lightgray;
 }
+
+::ng-deep .timeline-marker {
+  background-color: #ffa700;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -5px;
+  margin-left: -5px;
+}
+
+::ng-deep .timeline-start {
+  background-color: green;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -5px;
+  margin-left: -5px;
+}
+
+::ng-deep .timeline-stop {
+  background-color: red;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -5px;
+  margin-left: -5px;
+}

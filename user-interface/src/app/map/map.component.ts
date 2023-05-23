@@ -35,6 +35,7 @@ export class MapComponent {
         timestamp: number;
       }
     | undefined;
+  timeline: L.LayerGroup | undefined;
 
   private initMap(): void {
     this.map = L.map('map', {
@@ -150,7 +151,76 @@ export class MapComponent {
   }
 
   toggleTimeline(): void {
-    this.timelineOpen = !this.timelineOpen;
+    if (this.map) {
+      if (this.timeline && this.timelineOpen) {
+        this.timelineOpen = false;
+        this.map.removeLayer(this.timeline);
+        this.timeline = undefined;
+      } else {
+        this.petService.getLatestPetPath(1).subscribe(
+          (
+            res: {
+              device_data: {
+                last_movement: number;
+                latitude: number;
+                sound: number;
+                longitude: number;
+                sat_num: number;
+              };
+              device_id: number;
+              sample_time: number;
+            }[]
+          ) => {
+            const timelinePositions: L.LatLng[] = res.map(
+              (position: {
+                device_data: {
+                  last_movement: number;
+                  latitude: number;
+                  sound: number;
+                  longitude: number;
+                  sat_num: number;
+                };
+                device_id: number;
+                sample_time: number;
+              }) => {
+                return L.latLng([
+                  position.device_data.latitude,
+                  position.device_data.longitude,
+                ]);
+              }
+            );
+            console.log(res);
+
+            const timelineTrack = L.polyline(timelinePositions, {
+              fillOpacity: 0.3,
+              color: 'red',
+            });
+            const timelineMarkers = res.map((position, index, pos) => {
+              console.log(position, index, pos);
+              return L.marker(timelinePositions[index], {
+                icon: L.divIcon({
+                  className:
+                    index === 0
+                      ? 'timeline-start'
+                      : index === pos.length - 1
+                      ? 'timeline-stop'
+                      : 'timeline-marker',
+                  html: '<div></div>',
+                }),
+              }).bindPopup(
+                new Date(res[index].sample_time).toLocaleString('it')
+              );
+            });
+
+            this.timeline = L.layerGroup([timelineTrack, ...timelineMarkers]);
+            if (this.map) {
+              this.timeline.addTo(this.map);
+            }
+            this.timelineOpen = true;
+          }
+        );
+      }
+    }
   }
 
   toggleFenceOptions(): void {
