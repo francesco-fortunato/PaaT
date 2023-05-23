@@ -35,7 +35,7 @@
 #define BUF_SIZE 1024
 
 #define MQTT_BROKER_ADDR "192.168.1.1" // After connecting to the hotspot with the pc, insert here the ifconfig wlo1
-#define MQTT_TOPIC "sensor/1/gps"
+#define MQTT_TOPIC "sensor/gps"
 #define MQTT_VERSION_v311 4 /* MQTT v3.1.1 version is 4 */
 #define COMMAND_TIMEOUT_MS 4000
 
