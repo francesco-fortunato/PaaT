@@ -171,7 +171,8 @@ export class MapComponent {
               sample_time: number;
             }[]
           ) => {
-            const timelinePositions: L.LatLng[] = res.map(
+            const response = res.sort((a, b) => a.sample_time - b.sample_time);
+            const timelinePositions: L.LatLng[] = response.map(
               (position: {
                 device_data: {
                   last_movement: number;
@@ -189,14 +190,12 @@ export class MapComponent {
                 ]);
               }
             );
-            console.log(res);
 
             const timelineTrack = L.polyline(timelinePositions, {
               fillOpacity: 0.3,
               color: 'red',
             });
-            const timelineMarkers = res.map((position, index, pos) => {
-              console.log(position, index, pos);
+            const timelineMarkers = response.map((position, index, pos) => {
               return L.marker(timelinePositions[index], {
                 icon: L.divIcon({
                   className:
@@ -207,9 +206,7 @@ export class MapComponent {
                       : 'timeline-marker',
                   html: '<div></div>',
                 }),
-              }).bindPopup(
-                new Date(res[index].sample_time).toLocaleString('it')
-              );
+              }).bindPopup(new Date(position.sample_time).toLocaleString('it'));
             });
 
             this.timeline = L.layerGroup([timelineTrack, ...timelineMarkers]);
