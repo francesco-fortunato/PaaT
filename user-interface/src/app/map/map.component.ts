@@ -24,7 +24,7 @@ export class MapComponent {
     iconAnchor: [20, 20],
   });
   editingFence: boolean = false;
-  fenceMenuOpen: boolean = false;
+  // fenceMenuOpen: boolean = false;
   lightOn: boolean = false;
   soundOn: boolean = false;
   timelineOpen: boolean = false;
@@ -36,6 +36,8 @@ export class MapComponent {
       }
     | undefined;
   timeline: L.LayerGroup | undefined;
+
+  constructor(private petService: PetService) {}
 
   private initMap(): void {
     this.map = L.map('map', {
@@ -60,14 +62,33 @@ export class MapComponent {
     );
 
     tiles.addTo(this.map);
-
-    this.geoFence = L.polygon(this.petService.getGeofence(), {
-      fillOpacity: 0.3,
+    this.petService.getGeofence(1).subscribe((res) => {
+      if (res) {
+        this.geoFence = L.polygon(res.device_data[0], {
+          fillOpacity: 0.3,
+        });
+        if (this.map) {
+          this.geoFence.addTo(this.map);
+        }
+      }
     });
-    this.geoFence.addTo(this.map);
+    this.map.on('pm:create', (e) => {
+      if (this.map) {
+        if (e.layer instanceof L.Polygon) {
+          this.geoFence = e.layer;
+          this.geoFence.addTo(this.map);
+          this.editingFence = false;
+          this.petService
+            .saveGeofence(1, this.geoFence.getLatLngs())
+            .subscribe({
+              next: () => {},
+              error: (e) => console.error(e),
+              complete: () => console.info('complete'),
+            });
+        }
+      }
+    });
   }
-
-  constructor(private petService: PetService) {}
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -220,44 +241,57 @@ export class MapComponent {
     }
   }
 
+  // toggleFenceOptions(): void {
+  //   if (this.map) {
+  //     if (!this.geoFence) {
+  //       if (this.editingFence) {
+  //         this.editingFence = false;
+  //         this.map.pm.disableGlobalEditMode();
+  //       } else {
+  //         // this.fenceMenuOpen = false;
+  //         this.editingFence = true;
+  //         this.map.pm.enableDraw('Polygon', {});
+  //       }
+  //     } else {
+  //       if (this.editingFence) {
+  //         this.map.pm.disableGlobalEditMode();
+  //         this.editingFence = false;
+  //         const latLng = this.geoFence.getLatLngs();
+  //         // this.petService.saveGeofence(this.geoFence.getLatLngs());
+  //       } else if (this.fenceMenuOpen) {
+  //         // this.fenceMenuOpen = false;
+  //       } else {
+  //         // this.fenceMenuOpen = true;
+  //       }
+  //     }
+  //   }
+  // }
+
   toggleFenceOptions(): void {
     if (this.map) {
       if (!this.geoFence) {
-        if (this.editingFence) {
-          this.editingFence = false;
-          this.map.pm.disableGlobalEditMode();
-        } else {
-          this.fenceMenuOpen = false;
-          this.editingFence = true;
-          this.map.pm.enableDraw('Polygon', {});
-          this.map.on('pm:create', (e) => {
-            if (this.map) {
-              if (e.layer instanceof L.Polygon) {
-                this.geoFence = e.layer;
-                this.geoFence.addTo(this.map);
-                this.editingFence = false;
-              }
-            }
-          });
-        }
+        this.editingFence = true;
+        this.map.pm.enableDraw('Polygon', {});
       } else {
         if (this.editingFence) {
           this.map.pm.disableGlobalEditMode();
           this.editingFence = false;
-          const latLng = this.geoFence.getLatLngs();
-          console.log(latLng);
-          // this.petService.saveGeofence(this.geoFence.getLatLngs());
-        } else if (this.fenceMenuOpen) {
-          this.fenceMenuOpen = false;
+          this.petService
+            .saveGeofence(1, this.geoFence.getLatLngs())
+            .subscribe({
+              next: () => {},
+              error: (e) => console.error(e),
+              complete: () => console.info('complete'),
+            });
         } else {
-          this.fenceMenuOpen = true;
+          this.editFence();
         }
       }
     }
   }
 
   editFence(): void {
-    this.fenceMenuOpen = false;
+    // this.fenceMenuOpen = false;
     this.editingFence = true;
     if (this.map && this.geoFence) {
       this.geoFence.pm.enable();
@@ -265,11 +299,11 @@ export class MapComponent {
   }
 
   removeFence(): void {
-    this.fenceMenuOpen = false;
+    // this.fenceMenuOpen = false;
     if (this.map && this.geoFence) {
       this.map.removeLayer(this.geoFence);
       this.geoFence = undefined;
-      this.petService.removeGeofence();
+      // this.petService.removeGeofence(1);
     }
   }
 

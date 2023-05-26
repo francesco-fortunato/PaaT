@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import * as L from 'leaflet';
 
 @Injectable({
   providedIn: 'root',
@@ -23,23 +24,38 @@ export class PetService {
     };
   }
 
-  getGeofence(): [number, number][] {
-    return [
-      [41.89615593693024, 12.48712220789482],
-      [41.90194818191196, 12.497284633845346],
-      [41.89046959691638, 12.49905267353532],
-      [41.88567734430687, 12.489890247584794],
-      [41.89136368987694, 12.477959781944294],
-    ];
+  getGeofence(id: number): Observable<{
+    device_id: number;
+    device_data: L.LatLng[][];
+    sample_time: number;
+  }> {
+    return this.http.get<{
+      device_id: number;
+      device_data: L.LatLng[][];
+      sample_time: number;
+    }>(
+      'https://wuufd3nn7k.execute-api.us-east-1.amazonaws.com/beta/geofence?id=' +
+        id
+    );
   }
 
-  saveGeofence(latLngList: { lat: number; lng: number }[]) {
-    //send to server
+  saveGeofence(
+    id: number,
+    latLngList: L.LatLng[] | L.LatLng[][] | L.LatLng[][][]
+  ): Observable<any> {
+    return this.http.post(
+      'https://wuufd3nn7k.execute-api.us-east-1.amazonaws.com/beta/geofence?id=' +
+        id,
+      latLngList
+    );
   }
 
-  removeGeofence() {
-    //send to server
-  }
+  // removeGeofence(id: number): Observable<any> {
+  //   return this.http.delete(
+  //     'https://wuufd3nn7k.execute-api.us-east-1.amazonaws.com/beta/geofence?id=' +
+  //       id
+  //   );
+  // }
 
   getLatestPetPath(id: number): Observable<any> {
     return this.http.get(
