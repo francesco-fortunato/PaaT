@@ -59,10 +59,19 @@ static unsigned char readbuf[BUF_SIZE];
 
 #define GPS_UART_DEV UART_DEV(1)
 #define GPS_BAUDRATE 9600
+#define GPS_CE_PIN GPIO2
 
-float latitude;
-float longitude;
-int satellitesNum;
+int latitude = 0;
+int longitude = 0;
+int satellitesNum = 0;
+bool soundOn = false;
+bool lightOn = false;
+int geofenceMinLat = 0;
+int geofenceMaxLat = 0;
+int geofenceMinLng = 0;
+int geofenceMaxLng = 0;
+bool geofenceViolated = false;
+int nextLoRaWanWakeUp = 0;
 
 char nmea_buffer[MINMEA_MAX_SENTENCE_LENGTH];
 struct minmea_sentence_gga frame;
@@ -122,7 +131,6 @@ static int mqtt_connect(void)
 static void gps_rx_cb(void *arg, uint8_t data)
 {
     (void)arg;
-    // putchar(data);
     if (data != '\n')
     {
         nmea_buffer[i++] = data;
@@ -137,49 +145,9 @@ static void gps_rx_cb(void *arg, uint8_t data)
         {
             if (minmea_parse_gga(&frame, nmea_buffer))
             {
-                printf("$GGA: fix quality: %d\n", frame.fix_quality);
-                // long degreesLat = frame.latitude.value / 1000000;
-                // long minutesLat = frame.latitude.value % 1000000;
-                // double lat = degreesLat + (double)minutesLat / 600000;
-                // // int degreesLon = frame.longitude.value / 1000000;
-                // // int minutesLon = frame.longitude.value % 1000000;
-                // // float lon = degreesLon + (float)minutesLon / 600000;
-
-                // printf("LATITUDE: %f\n", lat);
-                // printf("LONGITUDE: %f\n", lon);
-                printf("LATITUDE: %d\n", frame.latitude.value);
-                printf("LONGITUDE: %d\n", frame.longitude.value);
-                // printf("ALTITUDE: %f %c\n", (float)frame.altitude.value/100, frame.altitude_units);
-                printf("SATELLITES: %d\n", frame.satellites_tracked);
-
-                // SENT MESSAGE
-
-                char json[200];
-                sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%d\", \"Longitude\": \"%d\", \"Altitude\": \"%d %c\", \"Satellites\": \"%d\"}",
-                        1, frame.latitude.value, frame.longitude.value, frame.altitude.value, frame.altitude_units, frame.satellites_tracked);
-
-                char *msg = json;
-                // MQTT
-                //  Publish flame value to MQTT broker
-                MQTTMessage message;
-                message.qos = QOS2;
-                message.retained = IS_RETAINED_MSG;
-                message.payload = msg;
-                message.payloadlen = strlen(message.payload);
-
-                char *topic = MQTT_TOPIC;
-
-                int rc;
-                if ((rc = MQTTPublish(&client, topic, &message)) < 0)
-                {
-                    printf("mqtt_example: Unable to publish (%d)\n", rc);
-                }
-                else
-                {
-                    printf("mqtt_example: Message (%s) has been published to topic %s "
-                           "with QOS %d\n",
-                           (char *)message.payload, topic, (int)message.qos);
-                }
+                latitude = frame.latitude.value;
+                longitude = frame.longitude.value;
+                satellitesNum = frame.satellites_tracked;
             }
         }
         break;
@@ -214,9 +182,132 @@ int main(void)
     mqtt_connect();
 
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
+    gpio_init(GPS_CE_PIN, GPIO_OUT);
     while (1)
     {
-        xtimer_sleep(5);
+        latitude = 0;
+        longitude = 0;
+        satellitesNum = 0;
+        bool lorawanWakeUp = false;
+        if (nextLoRaWanWakeUp <= xtimer_now())
+        {
+            lorawanWakeUp = true;
+        }
+        // GPS power on
+        gpio_write(GPS_CE_PIN, 1);
+        printf("GPS power on\n");
+
+        // Wait for reliable position or timeout
+        int checks = 0;
+        while (checks < 10 && satellitesNum < 3)
+        {
+            xtimer_sleep(10); // TBD
+            checks++;
+        }
+
+        // GPS power off
+        gpio_write(GPS_CE_PIN, 0);
+        printf("GPS power off\n");
+
+        if (satellitesNum >= 3)
+        {
+            // check if the geofence is violated (if exists)
+            if (geofenceMaxLat != 0 && geofenceMaxLng != 0 && geofenceMinLat != 0 && geofenceMinLng != 0)
+            {
+                if (latitude > geofenceMaxLat || latitude < geofenceMinLat || longitude > geofenceMaxLng || longitude < geofenceMinLng)
+                {
+                    geofenceViolated = true;
+                }
+                else
+                {
+                    geofenceViolated = false;
+                }
+            }
+
+            // if geofence violated set sleep for LoRaWAN to 5min else 1h
+            if (geofenceViolated)
+            {
+                nextLoRaWanWakeUp = xtimer_now() + 300000;
+            }
+            else
+            {
+                nextLoRaWanWakeUp = xtimer_now() + 3600000;
+            }
+        }
+
+        if (geofenceViolated || lorawanWakeUp)
+        {
+            // subscribe to check if new geofence published
+            // parse response message and set lightOn and soundOn, edit geofence if updated
+            // lightOn = false;
+            // soundOn = false;
+            // geofenceMinLat = 0;
+            // geofenceMaxLat = 0;
+            // geofenceMinLng = 0;
+            // geofenceMaxLng = 0;
+            // compute if the new geofence is violated if updated
+            bool geofenceUpdated = false; // to be removed
+            if (geofenceUpdated)
+            {
+                // check if the geofence is violated (if exists)
+                if (geofenceMaxLat != 0 && geofenceMaxLng != 0 && geofenceMinLat != 0 && geofenceMinLng != 0)
+                {
+                    if (latitude > geofenceMaxLat || latitude < geofenceMinLat || longitude > geofenceMaxLng || longitude < geofenceMinLng)
+                    {
+                        geofenceViolated = true;
+                    }
+                    else
+                    {
+                        geofenceViolated = false;
+                    }
+                }
+
+                // if geofence violated set sleep for LoRaWAN to 5min else 1h
+                if (geofenceViolated)
+                {
+                    nextLoRaWanWakeUp = xtimer_now() + 300000;
+                    // send new MQTT message for violation???
+                }
+                else
+                {
+                    nextLoRaWanWakeUp = xtimer_now() + 3600000;
+                }
+            }
+
+            // send MQTT message
+            char json[200];
+            sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%d\", \"Longitude\": \"%d\", \"Satellites\": \"%d\", \"GeofenceViolated\": %s}",
+                    1, latitude, longitude, satellitesNum, geofenceViolated ? "true" : "false");
+
+            char *msg = json;
+            // MQTT
+            //  Publish flame value to MQTT broker
+            MQTTMessage message;
+            message.qos = QOS2;
+            message.retained = IS_RETAINED_MSG;
+            message.payload = msg;
+            message.payloadlen = strlen(message.payload);
+
+            char *topic = MQTT_TOPIC;
+
+            int rc;
+            if ((rc = MQTTPublish(&client, topic, &message)) < 0)
+            {
+                printf("mqtt_example: Unable to publish (%d)\n", rc);
+            }
+            else
+            {
+                printf("mqtt_example: Message (%s) has been published to topic %s "
+                       "with QOS %d\n",
+                       (char *)message.payload, topic, (int)message.qos);
+            }
+
+            // wait for response message or timeout
+            xtimer_sleep(10); // TODO
+        }
+
+        // Sleep for 5 minutes
+        xtimer_sleep(300);
     }
 
     return 0;
