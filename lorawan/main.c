@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2018 Inria
+ *
+ * This file is subject to the terms and conditions of the GNU Lesser
+ * General Public License v2.1. See the file LICENSE in the top level
+ * directory for more details.
+ */
+
+/**
+ * @ingroup     examples
+ * @{
+ *
+ * @file
+ * @brief       Example demonstrating the use of LoRaWAN with RIOT
+ *
+ * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ *
+ * @}
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include "stdlib.h"
@@ -50,16 +70,16 @@ static uint8_t appskey[LORAMAC_APPSKEY_LEN];
 #endif
 
 const char* coordinates[] = {
-    "{'lat': 41.8960156032722, 'lng': 12.493740198896651}",
-    "{'lat': 41.89167421134482, 'lng': 12.498581879314175}",
-    "{'lat': 41.88977635297827, 'lng': 12.49825531512865}",
-    "{'lat': 41.89339070237489, 'lng': 12.495170117908552}",
-    "{'lat': 41.89059371609803, 'lng': 12.496922330983208}",
-    "{'lat': 41.891863645396185, 'lng': 12.496194385513437}",
-    "{'lat': 41.89459139551559, 'lng': 12.49689715015853}",
-    "{'lat': 41.89867101472699, 'lng': 12.499329545754307}",
-    "{'lat': 41.895111125939, 'lng': 12.49598538346839}",
-    "{'lat': 41.89599950800407, 'lng': 12.493933689160949}"
+    "{\"lat\": 41.8960156032722, \"lng\": 12.493740198896651}",
+    "{\"lat\": 41.89167421134482, \"lng\": 12.498581879314175}",
+    "{\"lat\": 41.88977635297827, \"lng\": 12.49825531512865}",
+    "{\"lat\": 41.89339070237489, \"lng\": 12.495170117908552}",
+    "{\"lat\": 41.89059371609803, \"lng\": 12.496922330983208}",
+    "{\"lat\": 41.891863645396185, \"lng\": 12.496194385513437}",
+    "{\"lat\": 41.89459139551559, \"lng\": 12.49689715015853}",
+    "{\"lat\": 41.89867101472699, \"lng\": 12.499329545754307}",
+    "{\"lat\": 41.895111125939, \"lng\": 12.49598538346839}",
+    "{\"lat\": 41.89599950800407, \"lng\": 12.493933689160949}"
 };
 
 int size = sizeof(coordinates) / sizeof(coordinates[0]);
@@ -88,26 +108,38 @@ static void _prepare_next_alarm(void)
 }
 
 
-static void _send_message(void)
-{
+static void _send_message(void) {
+    int size = sizeof(coordinates) / sizeof(coordinates[0]);
+
     // Generate random index
     int random_index = rand() % size;
 
     // Get the random coordinate string
     const char* random_coordinate = coordinates[random_index];
 
-    // Create a message string with the random coordinate
-    char message[100];
-    snprintf(message, sizeof(message), "%s", random_coordinate);
+    // Allocate memory for the message string dynamically
+    size_t message_length = strlen(random_coordinate) + 1;
+    char* message = (char*)malloc(message_length);
+    if (message == NULL) {
+        printf("Failed to allocate memory for message\n");
+        return;
+    }
+
+    // Copy the random coordinate string to the message
+    strncpy(message, random_coordinate, message_length);
 
     printf("Sending: %s\n", message);
 
     /* Try to send the message */
-    uint8_t ret = semtech_loramac_send(&loramac, (uint8_t *)message, strlen(message));
+    // Send as JSON format
+    uint8_t ret = semtech_loramac_send(&loramac, (uint8_t*)message, message_length - 1);
     if (ret != SEMTECH_LORAMAC_TX_DONE) {
         printf("Cannot send message '%s', ret code: %d\n", message, ret);
+        free(message);  // Release the allocated memory
         return;
     }
+
+    free(message);  // Release the allocated memory
 }
 
 
