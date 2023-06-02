@@ -1,0 +1,9 @@
+after 45 minutes got error: 
+scheduler(): stack overflow detected, pid=2
+*** RIOT kernel panic:
+STACK OVERFLOW
+
+*** halted.
+
+Inside isr -2
+
