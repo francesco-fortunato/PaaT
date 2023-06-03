@@ -1,4 +1,5 @@
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
+from decimal import Decimal
 import paho.mqtt.client as mqtt
 import json
 import time
@@ -6,6 +7,7 @@ from datetime import datetime
 import signal
 import pyconfig
 import boto3
+
 
 
 # Set the callback function for MQTT messages
@@ -44,8 +46,8 @@ def on_connect(_client, _userdata, _flags, result):
     """Subscribe to input topic"""
 
     print('Connected ' + str(result))
-    myMQTTClient.publish(MQTT_PUB_TOPIC, "Ciao", 0)
-    print("ho inviato ciao")
+#    myMQTTClient.publish(MQTT_PUB_TOPIC, "Ciao", 0)
+#    print("ho inviato ciao")
 
     print('Subscribing to ' + MQTT_SUB_TOPIC)
     MQTT_CLIENT.subscribe(MQTT_SUB_TOPIC)
@@ -62,9 +64,24 @@ def on_connect(_client, _userdata, _flags, result):
     response = table.scan()
     items = response['Items']
     sorted_items = sorted(items, key=lambda x: x['sample_time'], reverse=True)  # sample_time is my timestamp attribute name
-    last_item = sorted_items[0]
+    last_item = sorted_items[0]['device_data'][0]
 
     print('Last item:', last_item)
+
+    # Combine all elements into a single dictionary
+    combined_item = []
+    for i, item in enumerate(last_item, 1):
+        #combined_item.append(f'lat{i}')
+        combined_item.append(float(item['lat']))
+        #combined_item.append(f'lng{i}')
+        combined_item.append(float(item['lng']))
+
+
+    # Convert the combined item to a JSON string
+    json_payload = json.dumps(combined_item)
+
+    MQTT_CLIENT.publish(MQTT_PUB_TOPIC_GEOFENCE, json_payload, 2)
+    print("ho inviato: ", combined_item)
 
 # Disconnect function
 def disconnect_clients(signum, frame):
@@ -117,6 +134,7 @@ myMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 #TOPIC
 MQTT_SUB_TOPIC = "sensor/gps"
 MQTT_PUB_TOPIC = "device/"
+MQTT_PUB_TOPIC_GEOFENCE = "geofence"
 
 # Create a MQTT client instance
 MQTT_CLIENT = mqtt.Client(client_id=MQTT_BROKER_CLIENT_ID)

@@ -78,6 +78,48 @@ struct minmea_sentence_gga frame;
 int i = 0;
 char c;
 
+float values[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+static void _on_msg_received(MessageData *data)
+{
+    printf("paho_mqtt_example: message received on topic"
+           " %.*s: %.*s\n",
+           (int)data->topicName->lenstring.len,
+           data->topicName->lenstring.data, (int)data->message->payloadlen,
+           (char *)data->message->payload);
+
+    // Extract the received string
+    char* message = (char*)data->message->payload;
+
+    int count = 0;
+
+    // Parse the string and extract the values
+    char* token = strtok(message, "[,]");
+    while (token != NULL && count < 8) {
+        values[count] = atof(token);
+        token = strtok(NULL, ",");
+        count++;
+    }
+
+    // Print the extracted values
+    for (int i = 0; i < count; i++) {
+        printf("Value %d: %.12f\n", i + 1, values[i]);
+    }
+}
+
+static int mqtt_unsub(void)
+{
+    int unsub = MQTTUnsubscribe(&client, sub_topic);
+
+    if (unsub < 0) {
+        printf("mqtt_example: Unable to unsubscribe from topic: %s\n", sub_topic);
+    }
+    else {
+        printf("mqtt_example: Unsubscribed from topic:%s\n", sub_topic);
+    }
+    return unsub;
+}
+
 static int mqtt_connect(void)
 {
     int ret = 0;
@@ -180,6 +222,21 @@ int main(void)
 
     // Connect to MQTT broker
     mqtt_connect();
+
+    char* sub_topic = "geofence";
+
+
+    printf("Geofence: Subscribing to %s\n", sub_topic);
+    int ret = MQTTSubscribe(&client,
+              sub_topic, QOS2, _on_msg_received);
+    if (ret < 0) {
+        printf("Geofence: Unable to subscribe to %s (%d)\n",
+               sub_topic, ret);
+    }
+    else {
+        printf("Geofence: Now subscribed to %s, QOS %d\n",
+               sub_topic, (int) QOS2);
+    }
 
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
     gpio_init(GPS_CE_PIN, GPIO_OUT);
