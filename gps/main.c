@@ -36,7 +36,7 @@
 // MQTT client settings
 #define BUF_SIZE 1024
 
-#define MQTT_BROKER_ADDR "192.168.1.1" // After connecting to the hotspot with the pc, insert here the ifconfig wlo1
+#define MQTT_BROKER_ADDR "192.168.155.13" // After connecting to the hotspot with the pc, insert here the ifconfig wlo1
 #define MQTT_TOPIC "sensor/gps"
 #define MQTT_VERSION_v311 4 /* MQTT v3.1.1 version is 4 */
 #define COMMAND_TIMEOUT_MS 4000
@@ -76,7 +76,7 @@ bool geofenceViolated = false;
 int nextLoRaWanWakeUp = 0;
 
 cipher_context_t cyctx;
-uint8_t key[AES_KEY_SIZE_128] = 85472392713324147612017560598829561633;
+uint8_t key[AES_KEY_SIZE_128] = "gFisQ Jl)M:+r{cF";
 uint8_t cipher[AES_KEY_SIZE_128];
 
 char nmea_buffer[MINMEA_MAX_SENTENCE_LENGTH];
@@ -85,6 +85,7 @@ int i = 0;
 char c;
 
 float values[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+char* sub_topic = "geofence";
 
 static void _on_msg_received(MessageData *data)
 {
@@ -115,20 +116,6 @@ static void _on_msg_received(MessageData *data)
     }
 }
 
-static int mqtt_unsub(void)
-{
-    int unsub = MQTTUnsubscribe(&client, sub_topic);
-
-    if (unsub < 0)
-    {
-        printf("mqtt_example: Unable to unsubscribe from topic: %s\n", sub_topic);
-    }
-    else
-    {
-        printf("mqtt_example: Unsubscribed from topic:%s\n", sub_topic);
-    }
-    return unsub;
-}
 
 static int mqtt_connect(void)
 {
@@ -217,12 +204,13 @@ void print_bytes(const uint8_t *key, size_t size) // to be removed
     {
         if (i != 0 && i % PRINT_KEY_LINE_LENGTH == 0)
             printf("\n");
-        printf("0x%x\t", key[i]);
+        printf("%x", key[i]);
     }
     printf("\n");
 }
+
 // Encrypt msg using aes-128
-int aes_128_encrypt(char *msg)
+uint8_t * aes_128_encrypt(char *msg)
 {
     printf("Unencrypted: %s\n", msg);
 
@@ -265,8 +253,6 @@ int main(void)
     // Connect to MQTT broker
     mqtt_connect();
 
-    char *sub_topic = "geofence";
-
     printf("Geofence: Subscribing to %s\n", sub_topic);
     int ret = MQTTSubscribe(&client,
                             sub_topic, QOS2, _on_msg_received);
@@ -281,35 +267,49 @@ int main(void)
                sub_topic, (int)QOS2);
     }
 
+    while (1){
+        if (values[0]!=0.0){
+            geofenceViolated = true;
+            break;
+        }
+        else{
+            printf("\n no geofence");
+            xtimer_sleep(5);
+        }
+    }
+
+    printf("GOT GEOFENCE");
+    
+
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
     gpio_init(GPS_CE_PIN, GPIO_OUT);
     while (1)
     {
-        latitude = 0;
-        longitude = 0;
-        satellitesNum = 0;
+        latitude = 41;
+        longitude = 12;
+        satellitesNum = 3;
         bool lorawanWakeUp = false;
-        if (nextLoRaWanWakeUp <= xtimer_now())
+        /*if (nextLoRaWanWakeUp <= xtimer_now())
         {
             lorawanWakeUp = true;
-        }
+        }*/
         // GPS power on
         gpio_write(GPS_CE_PIN, 1);
         printf("GPS power on\n");
 
         // Wait for reliable position or timeout
-        int checks = 0;
-        while (checks < 10 && satellitesNum < 3)
+        //int checks = 0;
+        /*while (checks < 10 && satellitesNum < 3)
         {
             xtimer_sleep(10); // TBD
             checks++;
-        }
+        }*/
 
         // GPS power off
         gpio_write(GPS_CE_PIN, 0);
         printf("GPS power off\n");
 
-        if (satellitesNum >= 3)
+        /*if (satellitesNum >= 3)
         {
             // check if the geofence is violated (if exists)
             if (geofenceMaxLat != 0 && geofenceMaxLng != 0 && geofenceMinLat != 0 && geofenceMinLng != 0)
@@ -334,7 +334,7 @@ int main(void)
                 nextLoRaWanWakeUp = xtimer_now() + 3600000;
             }
         }
-
+*/
         if (geofenceViolated || lorawanWakeUp)
         {
             // subscribe to check if new geofence published
@@ -346,7 +346,10 @@ int main(void)
             // geofenceMinLng = 0;
             // geofenceMaxLng = 0;
             // compute if the new geofence is violated if updated
-            bool geofenceUpdated = false; // to be removed
+            /*bool geofenceUpdated = false; // to be removed
+            if (values[0]!=0.0){
+                geofenceUpdated = true;
+            }
             if (geofenceUpdated)
             {
                 // check if the geofence is violated (if exists)
@@ -372,7 +375,7 @@ int main(void)
                 {
                     nextLoRaWanWakeUp = xtimer_now() + 3600000;
                 }
-            }
+            }*/
 
             // send MQTT message
             char json[200];
@@ -382,7 +385,7 @@ int main(void)
             char *msg = json;
 
             // encrypt msg with AES
-            int ciphertext = aes_128_encrypt(msg);
+            uint8_t* ciphertext = aes_128_encrypt(msg);
             // MQTT
             //  Publish flame value to MQTT broker
             MQTTMessage message;
@@ -409,8 +412,8 @@ int main(void)
             xtimer_sleep(10); // TODO
         }
 
-        // Sleep for 5 minutes
-        xtimer_sleep(300);
+        // Sleep for 10 sec
+        xtimer_sleep(10);
     }
 
     return 0;
