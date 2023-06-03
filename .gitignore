@@ -1,0 +1,89 @@
+# Ignore all files in the build directory
+/build/
+
+# Ignore all generated files
+*.o
+*.bin
+*.elf
+*.hex
+*.list
+
+# Ignore all generated files in subfolders
+**/*.o
+**/*.bin
+**/*.elf
+**/*.hex
+**/*.list
+
+# Ignore all backup files
+*~
+
+# Ignore all object files
+*.pyc
+
+# Ignore all virtual environments
+venv/
+
+# Ignore all RIOT specific files and directories
+/dist/
+/doc/
+/tests/
+/tools/
+/examples/
+/sys/
+/.gdbinit
+/.gdbinit.py
+/Makefile.dep
+
+# Ignore all Python specific files and directories
+__pycache__/
+*.egg-info/
+dist/
+build/
+**/pyconfig.py
+
+# Ignore all virtual environments
+venv/
+
+# Ignore all cache files
+__pycache__/
+
+# Ignore all generated files
+sdk/generated/
+
+# Ignore all build files
+build/
+
+# Ignore all distribution files
+dist/
+
+# Ignore all compiled Python files
+*.pyc
+
+# Ignore all logs
+*.log
+
+# Ignore all credentials files
+*.aws/credentials
+
+# Ignore all configuration files
+*.aws/config
+
+**/*.crt
+**/*.pem
+**/*.key
+**/certs
+**/start.sh
+
+# Ignore AWS IoT Device SDK for Python v2
+aws-iot-device-sdk-python-v2/
+
+# Ignore Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+**/start.sh
+
+**/pyconfig.py

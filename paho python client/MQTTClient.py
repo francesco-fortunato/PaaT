@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 import signal
 import pyconfig
+import boto3
 
 
 # Set the callback function for MQTT messages
@@ -49,12 +50,28 @@ def on_connect(_client, _userdata, _flags, result):
     print('Subscribing to ' + MQTT_SUB_TOPIC)
     MQTT_CLIENT.subscribe(MQTT_SUB_TOPIC)
 
+    dynamodb = boto3.resource('dynamodb',
+                              aws_access_key_id=AWS_ACCESS_KEY_ID,
+                              aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                              region_name='us-east-1')  # Replace with your desired region
+
+    # Retrieve the DynamoDB table
+    table = dynamodb.Table('geofence_data')
+
+    # Query the table and get the last item
+    response = table.scan()
+    items = response['Items']
+    sorted_items = sorted(items, key=lambda x: x['sample_time'], reverse=True)  # sample_time is my timestamp attribute name
+    last_item = sorted_items[0]
+
+    print('Last item:', last_item)
+
 # Disconnect function
 def disconnect_clients(signum, frame):
     MQTT_CLIENT.loop_stop()
     MQTT_CLIENT.disconnect()
     myMQTTClient.disconnect()
-    print("Disconnected from clients")
+    print("\nDisconnected from clients")
     exit(0)
 
 # Register signal handler for CTRL+C
@@ -78,6 +95,11 @@ AWS_IOT_PRIVATE_KEY = pyconfig.AWS_IOT_PRIVATE_KEY
 
 # Set the relative path to the AWS IoT Certificate file
 AWS_IOT_CERTIFICATE = pyconfig.AWS_IOT_CERTIFICATE
+
+AWS_ACCESS_KEY_ID = pyconfig.AWS_ACCESS_KEY_ID
+
+AWS_SECRET_ACCESS_KEY = pyconfig.AWS_SECRET_ACCESS_KEY
+
 
 # For certificate based connection
 myMQTTClient = AWSIoTMQTTClient(AWS_IOT_CLIENT_ID)
