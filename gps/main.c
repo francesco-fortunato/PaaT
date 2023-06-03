@@ -30,6 +30,8 @@
 
 #include "paho_mqtt.h"
 #include "MQTTClient.h"
+#include "crypto/aes.h"
+#define PRINT_KEY_LINE_LENGTH 5
 
 // MQTT client settings
 #define BUF_SIZE 1024
@@ -73,6 +75,10 @@ int geofenceMaxLng = 0;
 bool geofenceViolated = false;
 int nextLoRaWanWakeUp = 0;
 
+cipher_context_t cyctx;
+uint8_t key[AES_KEY_SIZE_128] = 85472392713324147612017560598829561633;
+uint8_t cipher[AES_KEY_SIZE_128];
+
 char nmea_buffer[MINMEA_MAX_SENTENCE_LENGTH];
 struct minmea_sentence_gga frame;
 int i = 0;
@@ -89,20 +95,22 @@ static void _on_msg_received(MessageData *data)
            (char *)data->message->payload);
 
     // Extract the received string
-    char* message = (char*)data->message->payload;
+    char *message = (char *)data->message->payload;
 
     int count = 0;
 
     // Parse the string and extract the values
-    char* token = strtok(message, "[,]");
-    while (token != NULL && count < 8) {
+    char *token = strtok(message, "[,]");
+    while (token != NULL && count < 8)
+    {
         values[count] = atof(token);
         token = strtok(NULL, ",");
         count++;
     }
 
     // Print the extracted values
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
+    {
         printf("Value %d: %.12f\n", i + 1, values[i]);
     }
 }
@@ -111,10 +119,12 @@ static int mqtt_unsub(void)
 {
     int unsub = MQTTUnsubscribe(&client, sub_topic);
 
-    if (unsub < 0) {
+    if (unsub < 0)
+    {
         printf("mqtt_example: Unable to unsubscribe from topic: %s\n", sub_topic);
     }
-    else {
+    else
+    {
         printf("mqtt_example: Unsubscribed from topic:%s\n", sub_topic);
     }
     return unsub;
@@ -201,6 +211,38 @@ static void gps_rx_cb(void *arg, uint8_t data)
     }
 }
 
+void print_bytes(const uint8_t *key, size_t size) // to be removed
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        if (i != 0 && i % PRINT_KEY_LINE_LENGTH == 0)
+            printf("\n");
+        printf("0x%x\t", key[i]);
+    }
+    printf("\n");
+}
+// Encrypt msg using aes-128
+int aes_128_encrypt(char *msg)
+{
+    printf("Unencrypted: %s\n", msg);
+
+    uint8_t *cleartext = (uint8_t *)msg;
+    // printf("%d\n", sizeof(cleartext));
+    aes_init(&cyctx, key, AES_KEY_SIZE_128);
+
+    print_bytes(cleartext, strlen((char *)cleartext));
+
+    for (int i = 0; i < (int)(strlen((char *)cleartext)); i += 16)
+    {
+        aes_encrypt(&cyctx, cleartext + i, cipher + i);
+    }
+
+    printf("Encrypted:\n");
+    print_bytes(cipher, strlen((char *)cipher));
+
+    return cipher;
+}
+
 int main(void)
 {
     printf("You are running RIOT on a(n) %s board.\n", RIOT_BOARD);
@@ -223,19 +265,20 @@ int main(void)
     // Connect to MQTT broker
     mqtt_connect();
 
-    char* sub_topic = "geofence";
-
+    char *sub_topic = "geofence";
 
     printf("Geofence: Subscribing to %s\n", sub_topic);
     int ret = MQTTSubscribe(&client,
-              sub_topic, QOS2, _on_msg_received);
-    if (ret < 0) {
+                            sub_topic, QOS2, _on_msg_received);
+    if (ret < 0)
+    {
         printf("Geofence: Unable to subscribe to %s (%d)\n",
                sub_topic, ret);
     }
-    else {
+    else
+    {
         printf("Geofence: Now subscribed to %s, QOS %d\n",
-               sub_topic, (int) QOS2);
+               sub_topic, (int)QOS2);
     }
 
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
@@ -337,12 +380,15 @@ int main(void)
                     1, latitude, longitude, satellitesNum, geofenceViolated ? "true" : "false");
 
             char *msg = json;
+
+            // encrypt msg with AES
+            int ciphertext = aes_128_encrypt(msg);
             // MQTT
             //  Publish flame value to MQTT broker
             MQTTMessage message;
             message.qos = QOS2;
             message.retained = IS_RETAINED_MSG;
-            message.payload = msg;
+            message.payload = ciphertext;
             message.payloadlen = strlen(message.payload);
 
             char *topic = MQTT_TOPIC;

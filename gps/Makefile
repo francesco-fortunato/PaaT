@@ -49,6 +49,8 @@ USEMODULE += sock_ip
 USEMODULE += sock_udp
 USEMODULE += sock_tcp
 
+USEMODULE += crypto
+
 USEMODULE += ztimer
 USEMODULE += ztimer_msec
 
