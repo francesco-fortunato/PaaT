@@ -7,7 +7,9 @@ from datetime import datetime
 import signal
 import pyconfig
 import boto3
-
+import base64
+import re
+import codecs
 
 
 # Set the callback function for MQTT messages
@@ -17,28 +19,48 @@ def on_message(_client, _userdata, message):
     print('-----')
 
     # Parse the incoming JSON string into a dictionary
-    payload = json.loads(message.payload)
+    payload = message.payload
+
+    print(payload)
+    
+    pattern = r'\{"id": "(.*?)", "Latitude": "(.*?)", "Longitude": "(.*?)", "Satellites": "(.*?)", "GeofenceViolated": (.*?)\}'
+
+    match = re.search(pattern, r"{}".format(payload))
+
+    if match:
+        id_value = match.group(1)
+        latitude_value = match.group(2)
+        longitude_value = match.group(3)
+        satellites_value = match.group(4)
+        geofence_violated_value = match.group(5)
+
+        print("ID:", id_value)
+        print("Latitude:", latitude_value)
+        print("Longitude:", longitude_value)
+        print("Satellites:", satellites_value)
+        print("Geofence Violated:", geofence_violated_value)
+    else:
+        print("No match found.")
 
     # Add datetime information as the second field
     new_payload = {
-        'id': payload['id'],
-        'latitude': float(payload['latitude']),
-        'longitude': float(payload['longitude']),
-        'sat_num': int(payload['sat_num']),
-        'last_movement': int(payload['last_movement']),
-        'sound': bool(payload['sound'])
+        'id': id_value,
+        'latitude': base64.b64encode(latitude_value).decode('utf-8'),
+        'longitude': base64.b64encode(longitude_value).decode('utf-8'),
+        'sat_num': satellites_value,
+        'geofence_violated': geofence_violated_value
     }
 
     json_payload = json.dumps(new_payload)
 
     # Topic will be MQTT_PUB_TOPIC_AIR
-    topic = MQTT_PUB_TOPIC + payload['id'] + "/data"
+    topic = MQTT_PUB_TOPIC + "data"
 
     success = myMQTTClient.publish(topic, json_payload, 0)
 
     time.sleep(5)
     if (success):
-        print("Message published to topic "+ topic)
+        print("Message " + json_payload + " published to topic " + topic)
     print('-----')
     
 # On connect subscribe to topic
