@@ -76,7 +76,7 @@ bool geofenceViolated = false;
 int nextLoRaWanWakeUp = 0;
 
 cipher_context_t cyctx;
-uint8_t key[AES_KEY_SIZE_128] = "gFisQ Jl)M:+r{cF";
+uint8_t key[AES_KEY_SIZE_128] = "PeShVmYq3s6v9yfB";
 uint8_t cipher[AES_KEY_SIZE_128];
 
 char nmea_buffer[MINMEA_MAX_SENTENCE_LENGTH];
@@ -86,7 +86,7 @@ char c;
 
 float values[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 char* sub_topic = "geofence";
-
+/*
 static void _on_msg_received(MessageData *data)
 {
     printf("paho_mqtt_example: message received on topic"
@@ -114,6 +114,24 @@ static void _on_msg_received(MessageData *data)
     {
         printf("Value %d: %.12f\n", i + 1, values[i]);
     }
+}*/
+
+// Function to convert bytes to hex string
+void bytes_to_hex_string(const uint8_t *bytes, size_t size, char *hex_string)
+{
+    size_t index = 0;
+
+    for (size_t i = 0; i < size; i++)
+    {
+        // Format the byte as a two-digit hexadecimal string
+        sprintf(&hex_string[index], "%02x", bytes[i]);
+
+        // Move the index two positions forward
+        index += 2;
+    }
+
+    // Add a null terminator at the end of the string
+    hex_string[index] = '\0';
 }
 
 
@@ -209,27 +227,40 @@ void print_bytes(const uint8_t *key, size_t size) // to be removed
     printf("\n");
 }
 
-// Encrypt msg using aes-128
-uint8_t * aes_128_encrypt(char *msg)
+// Encrypt msg using AES-128
+uint8_t* aes_128_encrypt(const char* msg)
 {
     printf("Unencrypted: %s\n", msg);
 
-    uint8_t *cleartext = (uint8_t *)msg;
-    // printf("%d\n", sizeof(cleartext));
+    size_t msg_len = strlen(msg);
+    size_t padding_len = 16 - (msg_len % 16);
+    size_t padded_len = msg_len + padding_len;
+    uint8_t padded_msg[padded_len];
+
+    memcpy(padded_msg, msg, msg_len);
+    memset(padded_msg + msg_len, 0, padding_len);
+
     aes_init(&cyctx, key, AES_KEY_SIZE_128);
 
-    print_bytes(cleartext, strlen((char *)cleartext));
+    print_bytes(padded_msg, padded_len);
 
-    for (int i = 0; i < (int)(strlen((char *)cleartext)); i += 16)
+    uint8_t* encrypted_msg = malloc(padded_len);
+    if (encrypted_msg == NULL) {
+        printf("Failed to allocate memory\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < (int)padded_len; i += 16)
     {
-        aes_encrypt(&cyctx, cleartext + i, cipher + i);
+        aes_encrypt(&cyctx, padded_msg + i, encrypted_msg + i);
     }
 
     printf("Encrypted:\n");
-    print_bytes(cipher, strlen((char *)cipher));
+    print_bytes(encrypted_msg, padded_len);
 
-    return cipher;
+    return encrypted_msg;
 }
+
 
 int main(void)
 {
@@ -237,7 +268,7 @@ int main(void)
     printf("This board features a(n) %s MCU.\n", RIOT_MCU);
 
     /* let LWIP initialize */
-    ztimer_sleep(ZTIMER_MSEC, 5 * MS_PER_SEC);
+    ztimer_sleep(ZTIMER_MSEC, 10 * MS_PER_SEC);
 
     // Initialize network
     NetworkInit(&network);
@@ -252,7 +283,7 @@ int main(void)
 
     // Connect to MQTT broker
     mqtt_connect();
-
+/*
     printf("Geofence: Subscribing to %s\n", sub_topic);
     int ret = MQTTSubscribe(&client,
                             sub_topic, QOS2, _on_msg_received);
@@ -279,7 +310,8 @@ int main(void)
     }
 
     printf("GOT GEOFENCE");
-    
+    */
+    geofenceViolated = true;
 
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
     gpio_init(GPS_CE_PIN, GPIO_OUT);
@@ -376,22 +408,32 @@ int main(void)
                     nextLoRaWanWakeUp = xtimer_now() + 3600000;
                 }
             }*/
+            // encrypt msg with AES
+            char* lati= "418960156032722";
+            char* longi="12493740198896651";
+            uint8_t* lat_encrypted = aes_128_encrypt(lati);
+            uint8_t* lon_encrypted = aes_128_encrypt(longi);
+
+            char lat_hex[(strlen(lati) * 2) + 1];
+            char lon_hex[(strlen(longi) * 2) + 1]; 
 
             // send MQTT message
-            char json[200];
-            sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%d\", \"Longitude\": \"%d\", \"Satellites\": \"%d\", \"GeofenceViolated\": %s}",
-                    1, latitude, longitude, satellitesNum, geofenceViolated ? "true" : "false");
+            bytes_to_hex_string(lat_encrypted, strlen(lati), lat_hex);
+            bytes_to_hex_string(lon_encrypted, strlen(longi), lon_hex);
 
-            char *msg = json;
+            char json[500];
+            sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%s\", \"Longitude\": \"%s\", \"Satellites\": \"%d\", \"GeofenceViolated\": %s}",
+                    1, lat_hex, lon_hex, satellitesNum, geofenceViolated ? "true" : "false");
 
-            // encrypt msg with AES
-            uint8_t* ciphertext = aes_128_encrypt(msg);
+            //uint8_t* ciphertext = aes_128_encrypt(msg);
+uint8_t *msg_to_be_sent = (uint8_t*)json;            //printf("size of ciphertext: %d\n", strlen((char *)ciphertext) * sizeof(uint8_t));
+            //printf("cipher_lat: %s, c\n", ciphertext);
             // MQTT
             //  Publish flame value to MQTT broker
             MQTTMessage message;
             message.qos = QOS2;
             message.retained = IS_RETAINED_MSG;
-            message.payload = ciphertext;
+            message.payload = msg_to_be_sent;
             message.payloadlen = strlen(message.payload);
 
             char *topic = MQTT_TOPIC;
@@ -408,6 +450,8 @@ int main(void)
                        (char *)message.payload, topic, (int)message.qos);
             }
 
+            free(lat_encrypted);
+            free(lon_encrypted);
             // wait for response message or timeout
             xtimer_sleep(10); // TODO
         }
