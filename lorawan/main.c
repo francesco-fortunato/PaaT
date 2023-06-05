@@ -38,6 +38,10 @@
 
 #include "net/loramac.h"
 #include "semtech_loramac.h"
+#include "crypto/aes.h"
+
+#define PRINT_KEY_LINE_LENGTH 5
+
 
 /* By default, messages are sent every 20s to respect the duty cycle
    on each channel */
@@ -69,6 +73,13 @@ static uint8_t nwkskey[LORAMAC_NWKSKEY_LEN];
 static uint8_t appskey[LORAMAC_APPSKEY_LEN];
 #endif
 
+// Encryption 
+cipher_context_t cyctx;
+uint8_t key[AES_KEY_SIZE_128] = "PeShVmYq3s6v9yfB";
+uint8_t cipher[AES_KEY_SIZE_128];
+
+float geofence[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
 const char* coordinates[] = {
     "{\"lat\": 41.8960156032722, \"lng\": 12.493740198896651}",
     "{\"lat\": 41.89167421134482, \"lng\": 12.498581879314175}",
@@ -83,7 +94,78 @@ const char* coordinates[] = {
 };
 
 int size = sizeof(coordinates) / sizeof(coordinates[0]);
+int random_index;
 
+// Function to print bytes 
+void print_bytes(const uint8_t *key, size_t size) // to be removed
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        if (i != 0 && i % PRINT_KEY_LINE_LENGTH == 0)
+            printf("\n");
+        printf("%02x", key[i]);
+    }
+    printf("\n");
+}
+
+// Function to convert bytes to hex string
+void bytes_to_hex_string(const uint8_t *bytes, size_t size, char *hex_string)
+{
+    size_t index = 0;
+
+    for (size_t i = 0; i < size; i++)
+    {
+        // Format the byte as a two-digit hexadecimal string
+        sprintf(&hex_string[index], "%02x", bytes[i] & 0xff);
+
+        // Move the index two positions forward
+        index += 2;
+    }
+    hex_string[index]='\0';
+}
+
+// Encrypt msg using AES-128
+uint8_t* aes_128_encrypt(const char* msg)
+{
+    //printf("Unencrypted: %s\n", msg);
+
+    size_t msg_len = strlen(msg);
+    size_t padding_len = 16 - (msg_len % 16);
+    size_t padded_len = msg_len + padding_len;
+    uint8_t padded_msg[padded_len];
+
+    memcpy(padded_msg, msg, msg_len);
+    memset(padded_msg + msg_len, 0, padding_len);
+
+    aes_init(&cyctx, key, AES_KEY_SIZE_128);
+
+    //print_bytes(padded_msg, padded_len);
+
+    uint8_t* encrypted_msg = malloc(padded_len);
+    if (encrypted_msg == NULL) {
+        printf("Failed to allocate memory\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < (int)padded_len; i += 16)
+    {
+        aes_encrypt(&cyctx, padded_msg + i, encrypted_msg + i);
+    }
+
+    //printf("Encrypted:\n");
+    //print_bytes(encrypted_msg, padded_len);
+
+    // Convert encrypted_msg to hex string
+    char* hex_string = malloc((padded_len * 2) + 1);
+    if (hex_string == NULL) {
+        printf("Failed to allocate memory\n");
+        return NULL;
+    }
+
+    bytes_to_hex_string(encrypted_msg, padded_len, hex_string);
+
+    return (uint8_t*) hex_string;
+}
 
 static void _alarm_cb(void *arg)
 {
@@ -108,38 +190,66 @@ static void _prepare_next_alarm(void)
 }
 
 
-static void _send_message(void) {
-    int size = sizeof(coordinates) / sizeof(coordinates[0]);
+static void _send_message(void)
+{
+    char *lati = "41.24533";
+    char *longi = "12.242154";
+    uint8_t *lat_encrypted = (uint8_t *)aes_128_encrypt(lati);
+    uint8_t *lon_encrypted = (uint8_t *)aes_128_encrypt(longi);
 
-    // Generate random index
-    int random_index = rand() % size;
-
-    // Get the random coordinate string
-    const char* random_coordinate = coordinates[random_index];
+    // Calculate the required message length
+    size_t message_length = 32 + 32 + 20; // "{\"lat\":\"\",\"lon\":\"\"}"
 
     // Allocate memory for the message string dynamically
-    size_t message_length = strlen(random_coordinate) + 1;
-    char* message = (char*)malloc(message_length);
-    if (message == NULL) {
+    char *message = (char *)malloc(message_length);
+    if (message == NULL)
+    {
         printf("Failed to allocate memory for message\n");
+        free(lat_encrypted);
+        free(lon_encrypted);
         return;
     }
 
-    // Copy the random coordinate string to the message
-    strncpy(message, random_coordinate, message_length);
+    // Construct the JSON message
+    snprintf(message, message_length, "{\"lat\":\"%s\",\"lon\":\"%s\"}",
+             lat_encrypted, lon_encrypted);
 
     printf("Sending: %s\n", message);
 
     /* Try to send the message */
     // Send as JSON format
-    uint8_t ret = semtech_loramac_send(&loramac, (uint8_t*)message, message_length - 1);
-    if (ret != SEMTECH_LORAMAC_TX_DONE) {
+    uint8_t ret = semtech_loramac_send(&loramac, (uint8_t *)message, message_length - 1);
+    if (ret != SEMTECH_LORAMAC_TX_DONE)
+    {
         printf("Cannot send message '%s', ret code: %d\n", message, ret);
-        free(message);  // Release the allocated memory
+        free(message);
+        free(lat_encrypted);
+        free(lon_encrypted);
         return;
     }
 
-    free(message);  // Release the allocated memory
+    free(message);
+    free(lat_encrypted);
+    free(lon_encrypted);
+    pm_set(PM_LOCK_LEVEL);
+}
+
+
+void print_message(const msg_t* msg) {
+    printf("Received message: %s\n", (char*)msg->content.value);
+    // Extract the received string
+    /*char *message = (char *)msg->content.ptr;
+
+    int count = 0;
+
+    // Parse the string and extract the geofence
+    char *token = strtok(message, "[,]");
+    while (token != NULL && count < 8)
+    {
+        geofence[count] = atof(token);
+        token = strtok(NULL, ",");
+        count++;
+    }*/
 }
 
 
@@ -157,6 +267,9 @@ static void *sender(void *arg)
         /* Trigger the message send */
         _send_message();
 
+        // print message
+
+
         /* Enter sleep mode to conserve power */
         pm_set(PM_LOCK_LEVEL);
 
@@ -171,8 +284,8 @@ static void *sender(void *arg)
 int main(void)
 {
     // Seed the random number generator
-    puts("LoRaWAN Class A low-power application");
-    puts("=====================================");
+    printf("LoRaWAN Class A low-power application\n");
+    printf("=====================================\n");
 
     /*
      * Enable deep sleep power mode (e.g. STOP mode on STM32) which
@@ -202,9 +315,9 @@ int main(void)
          * generated device address and to get the network and application session
          * keys.
          */
-        puts("Starting join procedure");
+        printf("Starting join procedure\n");
         if (semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA) != SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
-            puts("Join procedure failed");
+            printf("Join procedure failed\n");
             return 1;
         }
 
@@ -239,11 +352,11 @@ int main(void)
     /* ABP join procedure always succeeds */
     semtech_loramac_join(&loramac, LORAMAC_JOIN_ABP);
 #endif
-    puts("Join procedure succeeded");
+    printf("Join procedure succeeded\n");
 
     /* start the sender thread */
     sender_pid = thread_create(sender_stack, sizeof(sender_stack),
-                               SENDER_PRIO, 0, sender, NULL, "sender");
+                               SENDER_PRIO, THREAD_CREATE_STACKTEST, sender, NULL, "sender");
 
     /* trigger the first send */
     msg_t msg;
