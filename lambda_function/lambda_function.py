@@ -14,7 +14,7 @@ def lambda_handler(event, context):
     longitude_encrypted = base64.b64decode(longitude_base64)
 
     # AES encryption/decryption settings
-    key = b'PeShVmYq3s6v9yfB'  # Replace with your AES key
+    key = b''  # Replace with your AES key
     cipher = AES.new(key, AES.MODE_ECB)
 
     # Decrypt the latitude and longitude
