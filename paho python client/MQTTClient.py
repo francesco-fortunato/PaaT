@@ -17,53 +17,88 @@ def on_message(_client, _userdata, message):
 
     print('-----')
 
-    # Parse the incoming JSON string into a dictionary
+    # Take incoming message
     payload = message.payload
 
     print(payload)
+
+    if (payload == b'Geofence'):
+        dynamodb = boto3.resource('dynamodb',
+                              aws_access_key_id=AWS_ACCESS_KEY_ID,
+                              aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                              region_name='us-east-1')  # Replace with your desired region
+
+        # Retrieve the DynamoDB table
+        table = dynamodb.Table('geofence_data')
+
+        # Query the table and get the last item
+        response = table.scan()
+        items = response['Items']
+        sorted_items = sorted(items, key=lambda x: x['sample_time'], reverse=True)  # sample_time is my timestamp attribute name
+        last_item = sorted_items[0]['device_data'][0]
+
+        print('Last item:', last_item)
+
+        # Combine all elements into a single dictionary
+        combined_item = []
+        for i, item in enumerate(last_item, 1):
+            #combined_item.append(f'lat{i}')
+            combined_item.append(float(item['lat']))
+            #combined_item.append(f'lng{i}')
+            combined_item.append(float(item['lng']))
+
+
+        # Convert the combined item to a JSON string
+        json_payload = json.dumps(combined_item)
+
+        time.sleep(15)
+
+        MQTT_CLIENT.publish(MQTT_PUB_TOPIC_GEOFENCE, json_payload, 2)
+        print("ho inviato: ", combined_item)
     
-    pattern = r'\{"id": "(.*?)", "Latitude": "(.*?)", "Longitude": "(.*?)", "Satellites": "(.*?)", "GeofenceViolated": (.*?)\}'
-
-    match = re.search(pattern, r"{}".format(payload))
-
-    if match:
-        id_value = match.group(1)
-        latitude_value = match.group(2)
-        longitude_value = match.group(3)
-        satellites_value = match.group(4)
-        geofence_violated_value = match.group(5)
-
-        print("ID:", id_value)
-        print("Latitude:", latitude_value)
-        print("Longitude:", longitude_value)
-        print("Satellites:", satellites_value)
-        print("Geofence Violated:", geofence_violated_value)
     else:
-        print("No match found.")
+        pattern = r'\{"id": "(.*?)", "Latitude": "(.*?)", "Longitude": "(.*?)", "Satellites": "(.*?)", "GeofenceViolated": (.*?)\}'
 
-    # Convert latitude and longitude to bytes
-    latitude_bytes = bytes.fromhex(latitude_value)
-    longitude_bytes = bytes.fromhex(longitude_value)
+        match = re.search(pattern, r"{}".format(payload))
 
-    # Add datetime information as the second field
-    new_payload = {
-        'id': id_value,
-        'latitude': base64.b64encode(latitude_bytes).decode('utf-8'),
-        'longitude': base64.b64encode(longitude_bytes).decode('utf-8'),
-        'sat_num': satellites_value,
-        'geofence_violated': geofence_violated_value
-    }
+        if match:
+            id_value = match.group(1)
+            latitude_value = match.group(2)
+            longitude_value = match.group(3)
+            satellites_value = match.group(4)
+            geofence_violated_value = match.group(5)
 
-    json_payload = json.dumps(new_payload)
+            print("ID:", id_value)
+            print("Latitude:", latitude_value)
+            print("Longitude:", longitude_value)
+            print("Satellites:", satellites_value)
+            print("Geofence Violated:", geofence_violated_value)
+        else:
+            print("No match found.")
 
-    # Topic will be MQTT_PUB_TOPIC_AIR
-    topic = MQTT_PUB_TOPIC + "data/gps"
+        # Convert latitude and longitude to bytes
+        latitude_bytes = bytes.fromhex(latitude_value)
+        longitude_bytes = bytes.fromhex(longitude_value)
 
-    success = myMQTTClient.publish(topic, json_payload, 0)
+        # Add datetime information as the second field
+        new_payload = {
+            'id': id_value,
+            'latitude': base64.b64encode(latitude_bytes).decode('utf-8'),
+            'longitude': base64.b64encode(longitude_bytes).decode('utf-8'),
+            'sat_num': satellites_value,
+            'geofence_violated': geofence_violated_value
+        }
 
-    time.sleep(5)
-    if success:
-        print("Message " + json_payload + " published to topic " + topic)
+        json_payload = json.dumps(new_payload)
+
+        # Topic will be MQTT_PUB_TOPIC_AIR
+        topic = MQTT_PUB_TOPIC + "data/gps"
+
+        success = myMQTTClient.publish(topic, json_payload, 0)
+
+        time.sleep(5)
+        if success:
+            print("Message " + json_payload + " published to topic " + topic)
     print('-----')
     
 # On connect subscribe to topic
@@ -76,37 +111,6 @@ def on_connect(_client, _userdata, _flags, result):
 
     print('Subscribing to ' + MQTT_SUB_TOPIC)
     MQTT_CLIENT.subscribe(MQTT_SUB_TOPIC)
-
-    dynamodb = boto3.resource('dynamodb',
-                              aws_access_key_id=AWS_ACCESS_KEY_ID,
-                              aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                              region_name='us-east-1')  # Replace with your desired region
-
-    # Retrieve the DynamoDB table
-    table = dynamodb.Table('geofence_data')
-
-    # Query the table and get the last item
-    response = table.scan()
-    items = response['Items']
-    sorted_items = sorted(items, key=lambda x: x['sample_time'], reverse=True)  # sample_time is my timestamp attribute name
-    last_item = sorted_items[0]['device_data'][0]
-
-    print('Last item:', last_item)
-
-    # Combine all elements into a single dictionary
-    combined_item = []
-    for i, item in enumerate(last_item, 1):
-        #combined_item.append(f'lat{i}')
-        combined_item.append(float(item['lat']))
-        #combined_item.append(f'lng{i}')
-        combined_item.append(float(item['lng']))
-
-
-    # Convert the combined item to a JSON string
-    json_payload = json.dumps(combined_item)
-
-    MQTT_CLIENT.publish(MQTT_PUB_TOPIC_GEOFENCE, json_payload, 2)
-    print("ho inviato: ", combined_item)
 
 # Disconnect function
 def disconnect_clients(signum, frame):
