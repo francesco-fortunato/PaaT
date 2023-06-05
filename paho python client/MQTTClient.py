@@ -9,7 +9,6 @@ import pyconfig
 import boto3
 import base64
 import re
-import codecs
 
 
 # Set the callback function for MQTT messages
@@ -42,11 +41,15 @@ def on_message(_client, _userdata, message):
     else:
         print("No match found.")
 
+    # Convert latitude and longitude to bytes
+    latitude_bytes = bytes.fromhex(latitude_value)
+    longitude_bytes = bytes.fromhex(longitude_value)
+
     # Add datetime information as the second field
     new_payload = {
         'id': id_value,
-        'latitude': base64.b64encode(latitude_value).decode('utf-8'),
-        'longitude': base64.b64encode(longitude_value).decode('utf-8'),
+        'latitude': base64.b64encode(latitude_bytes).decode('utf-8'),
+        'longitude': base64.b64encode(longitude_bytes).decode('utf-8'),
         'sat_num': satellites_value,
         'geofence_violated': geofence_violated_value
     }
@@ -54,12 +57,12 @@ def on_message(_client, _userdata, message):
     json_payload = json.dumps(new_payload)
 
     # Topic will be MQTT_PUB_TOPIC_AIR
-    topic = MQTT_PUB_TOPIC + "data"
+    topic = MQTT_PUB_TOPIC + "data/gps"
 
     success = myMQTTClient.publish(topic, json_payload, 0)
 
     time.sleep(5)
-    if (success):
+    if success:
         print("Message " + json_payload + " published to topic " + topic)
     print('-----')
     

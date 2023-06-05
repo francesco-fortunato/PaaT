@@ -116,6 +116,17 @@ static void _on_msg_received(MessageData *data)
     }
 }*/
 
+void print_bytes(const uint8_t *key, size_t size) // to be removed
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        if (i != 0 && i % PRINT_KEY_LINE_LENGTH == 0)
+            printf("\n");
+        printf("%02x", key[i]);
+    }
+    printf("\n");
+}
+
 // Function to convert bytes to hex string
 void bytes_to_hex_string(const uint8_t *bytes, size_t size, char *hex_string)
 {
@@ -124,14 +135,12 @@ void bytes_to_hex_string(const uint8_t *bytes, size_t size, char *hex_string)
     for (size_t i = 0; i < size; i++)
     {
         // Format the byte as a two-digit hexadecimal string
-        sprintf(&hex_string[index], "%02x", bytes[i]);
+        sprintf(&hex_string[index], "%02x", bytes[i] & 0xff);
 
         // Move the index two positions forward
         index += 2;
     }
-
-    // Add a null terminator at the end of the string
-    hex_string[index] = '\0';
+    hex_string[index]='\0';
 }
 
 
@@ -216,17 +225,6 @@ static void gps_rx_cb(void *arg, uint8_t data)
     }
 }
 
-void print_bytes(const uint8_t *key, size_t size) // to be removed
-{
-    for (size_t i = 0; i < size; i++)
-    {
-        if (i != 0 && i % PRINT_KEY_LINE_LENGTH == 0)
-            printf("\n");
-        printf("%x", key[i]);
-    }
-    printf("\n");
-}
-
 // Encrypt msg using AES-128
 uint8_t* aes_128_encrypt(const char* msg)
 {
@@ -258,7 +256,17 @@ uint8_t* aes_128_encrypt(const char* msg)
     printf("Encrypted:\n");
     print_bytes(encrypted_msg, padded_len);
 
-    return encrypted_msg;
+    // Convert encrypted_msg to hex string
+    char* hex_string = malloc((padded_len * 2) + 1);
+    if (hex_string == NULL) {
+        printf("Failed to allocate memory\n");
+        return NULL;
+    }
+
+    bytes_to_hex_string(encrypted_msg, padded_len, hex_string);
+
+    return (uint8_t*) hex_string;
+
 }
 
 
@@ -410,23 +418,19 @@ int main(void)
             }*/
             // encrypt msg with AES
             char* lati= "418960156032722";
-            char* longi="12493740198896651";
+            char* longi="124937401988966";
             uint8_t* lat_encrypted = aes_128_encrypt(lati);
             uint8_t* lon_encrypted = aes_128_encrypt(longi);
 
-            char lat_hex[(strlen(lati) * 2) + 1];
-            char lon_hex[(strlen(longi) * 2) + 1]; 
-
-            // send MQTT message
-            bytes_to_hex_string(lat_encrypted, strlen(lati), lat_hex);
-            bytes_to_hex_string(lon_encrypted, strlen(longi), lon_hex);
+            printf("lati: %s, lat_encrypted: %s\n",
+                lati, (char*)lat_encrypted);
 
             char json[500];
             sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%s\", \"Longitude\": \"%s\", \"Satellites\": \"%d\", \"GeofenceViolated\": %s}",
-                    1, lat_hex, lon_hex, satellitesNum, geofenceViolated ? "true" : "false");
+                    1, lat_encrypted, lon_encrypted, satellitesNum, geofenceViolated ? "true" : "false");
 
             //uint8_t* ciphertext = aes_128_encrypt(msg);
-uint8_t *msg_to_be_sent = (uint8_t*)json;            //printf("size of ciphertext: %d\n", strlen((char *)ciphertext) * sizeof(uint8_t));
+            uint8_t *msg_to_be_sent = (uint8_t*)json;            //printf("size of ciphertext: %d\n", strlen((char *)ciphertext) * sizeof(uint8_t));
             //printf("cipher_lat: %s, c\n", ciphertext);
             // MQTT
             //  Publish flame value to MQTT broker
@@ -447,7 +451,7 @@ uint8_t *msg_to_be_sent = (uint8_t*)json;            //printf("size of ciphertex
             {
                 printf("mqtt_example: Message (%s) has been published to topic %s "
                        "with QOS %d\n",
-                       (char *)message.payload, topic, (int)message.qos);
+                       (uint8_t *)message.payload, topic, (int)message.qos);
             }
 
             free(lat_encrypted);
