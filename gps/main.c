@@ -31,7 +31,9 @@
 #include "paho_mqtt.h"
 #include "MQTTClient.h"
 #include "crypto/aes.h"
-#define PRINT_KEY_LINE_LENGTH 5
+#include "led.h"
+#define DELAY               (60 * US_PER_SEC)
+
 
 // MQTT client settings
 #define BUF_SIZE 1024
@@ -52,6 +54,10 @@
 #define DEFAULT_KEEPALIVE_SEC 10 // Keepalive timeout in seconds
 
 #define IS_RETAINED_MSG 0
+
+#define PRINT_KEY_LINE_LENGTH 5
+
+#define BUZZER_PIN          GPIO23
 
 static MQTTClient client;
 static Network network;
@@ -86,8 +92,13 @@ char c;
 
 float geofence[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 char* sub_topic_geofence = "geofence";
-char* sub_topic_actuators = "actuators/";
+char* emergence_topic = "actuators/";
 char *topic = MQTT_TOPIC;
+
+char stack1[THREAD_STACKSIZE_MAIN];
+char stack2[THREAD_STACKSIZE_MAIN];
+kernel_pid_t thread_pid_buzzer;
+kernel_pid_t thread_pid_led;
 
 static bool isInGeofence(float latitude, float longitude)
 {
@@ -101,6 +112,71 @@ static bool isInGeofence(float latitude, float longitude)
     {
         return false;
     }
+}
+
+static int mqtt_disconnect(void)
+{
+
+    int res = MQTTDisconnect(&client);
+    if (res < 0) {
+        printf("mqtt_example: Unable to disconnect\n");
+    }
+    else {
+        printf("mqtt_example: Disconnect successful\n");
+    }
+
+    NetworkDisconnect(&network);
+    return res;
+}
+
+static int mqtt_connect(void)
+{
+    int ret = 0;
+    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
+    data.MQTTVersion = MQTT_VERSION_v311;
+    data.clientID.cstring = DEFAULT_MQTT_CLIENT_ID;
+    data.username.cstring = DEFAULT_MQTT_USER;
+    data.password.cstring = DEFAULT_MQTT_PWD;
+    data.keepAliveInterval = 60;
+    data.cleansession = 1;
+
+    printf("MQTT: Connecting to MQTT Broker from %s %d\n",
+           MQTT_BROKER_ADDR, DEFAULT_MQTT_PORT);
+    printf("MQTT: Trying to connect to %s, port: %d\n",
+           MQTT_BROKER_ADDR, DEFAULT_MQTT_PORT);
+    ret = NetworkConnect(&network, MQTT_BROKER_ADDR, DEFAULT_MQTT_PORT);
+    if (ret < 0)
+    {
+        printf("MQTT: Unable to connect\n");
+        return ret;
+    }
+
+    printf("user:%s clientId:%s password:%s\n", data.username.cstring,
+           data.clientID.cstring, data.password.cstring);
+    ret = MQTTConnect(&client, &data);
+    if (ret < 0)
+    {
+        printf("MQTT: Unable to connect client %d\n", ret);
+        int res = MQTTDisconnect(&client);
+        if (res < 0)
+        {
+            printf("MQTT: Unable to disconnect\n");
+        }
+        else
+        {
+            printf("MQTT: Disconnect successful\n");
+        }
+
+        NetworkDisconnect(&network);
+        return res;
+    }
+    else
+    {
+        printf("MQTT: Connection successfully\n");
+    }
+
+    printf("MQTT client connected to broker\n");
+    return 0;
 }
 
 static void _on_msg_received(MessageData *data)
@@ -175,6 +251,8 @@ static void _on_msg_received(MessageData *data)
 
         int count = 0;
         char *token = strtok(message, "[,]");
+
+        // String is "['true', 'true']"
         
         while (token != NULL && count < 2) {
             if (count == 0) {
@@ -188,73 +266,8 @@ static void _on_msg_received(MessageData *data)
         }
         
         printf("Light: %s, Sound: %s\n", lightOn ? "true" : "false", soundOn ? "true" : "false");
+                    printf("i'm here6");
     }
-
-}
-
-static int mqtt_disconnect(void)
-{
-
-    int res = MQTTDisconnect(&client);
-    if (res < 0) {
-        printf("mqtt_example: Unable to disconnect\n");
-    }
-    else {
-        printf("mqtt_example: Disconnect successful\n");
-    }
-
-    NetworkDisconnect(&network);
-    return res;
-}
-
-static int mqtt_connect(void)
-{
-    int ret = 0;
-    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
-    data.MQTTVersion = MQTT_VERSION_v311;
-    data.clientID.cstring = DEFAULT_MQTT_CLIENT_ID;
-    data.username.cstring = DEFAULT_MQTT_USER;
-    data.password.cstring = DEFAULT_MQTT_PWD;
-    data.keepAliveInterval = 60;
-    data.cleansession = 1;
-
-    printf("MQTT: Connecting to MQTT Broker from %s %d\n",
-           MQTT_BROKER_ADDR, DEFAULT_MQTT_PORT);
-    printf("MQTT: Trying to connect to %s, port: %d\n",
-           MQTT_BROKER_ADDR, DEFAULT_MQTT_PORT);
-    ret = NetworkConnect(&network, MQTT_BROKER_ADDR, DEFAULT_MQTT_PORT);
-    if (ret < 0)
-    {
-        printf("MQTT: Unable to connect\n");
-        return ret;
-    }
-
-    printf("user:%s clientId:%s password:%s\n", data.username.cstring,
-           data.clientID.cstring, data.password.cstring);
-    ret = MQTTConnect(&client, &data);
-    if (ret < 0)
-    {
-        printf("MQTT: Unable to connect client %d\n", ret);
-        int res = MQTTDisconnect(&client);
-        if (res < 0)
-        {
-            printf("MQTT: Unable to disconnect\n");
-        }
-        else
-        {
-            printf("MQTT: Disconnect successful\n");
-        }
-
-        NetworkDisconnect(&network);
-        return res;
-    }
-    else
-    {
-        printf("MQTT: Connection successfully\n");
-    }
-
-    printf("MQTT client connected to broker\n");
-    return 0;
 }
 
 // Function to print bytes 
@@ -362,6 +375,46 @@ static void gps_rx_cb(void *arg, uint8_t data)
     }
 }
 
+// Led Thread
+void *toggle_led_thread(void *arg){
+
+    (void) arg;
+    while(1){    
+        if (lightOn){
+            printf("LIGHT ON\n");
+            LED_ON(0);
+            xtimer_sleep(25);
+                        printf("i'm here3");
+
+
+        }
+        else{
+            printf("LIGHT OFF\n");
+            LED_OFF(0);
+            thread_sleep();
+        }
+    }
+    return NULL;
+}
+
+// Buzzer Thead
+void *buzzer_thread(void *arg)
+{
+    (void) arg;
+    while(1) {
+        if(soundOn) {
+            printf("BUZZ ON\n");
+            gpio_set(BUZZER_PIN);
+            xtimer_usleep(400000);  // Wait for 400ms
+            gpio_clear(BUZZER_PIN);
+            xtimer_usleep(1000000);  // Wait for 1s
+        } else {
+            printf("BUZZ OFF\n");
+            thread_sleep();
+        }
+    }
+    return NULL;
+}
 
 int main(void)
 {
@@ -452,6 +505,19 @@ int main(void)
     latitude = 51.896015603272;
     longitude = 12.493740198896;
 
+    thread_pid_buzzer = thread_create(stack1, sizeof(stack1),
+                    THREAD_PRIORITY_MAIN - 1,
+                    THREAD_CREATE_SLEEPING,
+                    buzzer_thread,
+                    NULL, "buzzer_thread");
+    thread_pid_led = thread_create(stack2, sizeof(stack2),
+                    THREAD_PRIORITY_MAIN - 2,
+                    THREAD_CREATE_SLEEPING,
+                    toggle_led_thread,
+                    NULL, "toggle_led_thread");
+
+    xtimer_ticks32_t last = xtimer_now();
+
     while (1)
     {
         if (!client.isconnected){
@@ -535,31 +601,60 @@ int main(void)
             mqtt_disconnect();
             mqtt_connect();
 
-            printf("Get Light and Sound: Subscribing to %s\n", sub_topic_actuators);
+            printf("Get Light and Sound: Subscribing to %s\n", emergence_topic);
             int sub = MQTTSubscribe(&client,
-                                    sub_topic_actuators, QOS2, _on_msg_received);
+                                    emergence_topic, QOS2, _on_msg_received);
             if (sub < 0)
             {
                 printf("Get Light and Sound: Unable to subscribe to %s (%d)\n",
-                    sub_topic_actuators, sub);
+                    emergence_topic, sub);
             }
             else
             {
                 printf("Get Light and Sound: Now subscribed to %s, QOS %d\n",
-                    sub_topic_actuators, (int)QOS2);
+                    emergence_topic, (int)QOS2);
+            }
+            
+            bool actual_light=lightOn;
+
+            for(int i = 0; i<10; i++){
+                if(actual_light!=lightOn){
+                    actual_light = lightOn;
+                    if(lightOn) thread_wakeup(thread_pid_led);
+                }
+                if(!client.isconnected){
+                    //mqtt_disconnect();
+
+                    mqtt_connect();
+
+                    printf("Get Light and Sound: Subscribing to %s\n", emergence_topic);
+                    int sub = MQTTSubscribe(&client,
+                                            emergence_topic, QOS2, _on_msg_received);
+                    if (sub < 0)
+                    {
+                        printf("Get Light and Sound: Unable to subscribe to %s (%d)\n",
+                            emergence_topic, sub);
+                    }
+                    else
+                    {
+                        printf("Get Light and Sound: Now subscribed to %s, QOS %d\n",
+                            emergence_topic, (int)QOS2);
+                    }
+                }
+                printf("inside waiting for godot loop\n"); 
+                xtimer_periodic_wakeup(&last, 30 * US_PER_SEC);
             }
 
-            // Wait for actuators. If no actions in 5 minutes, restart loop
-
-            xtimer_sleep(60);
-            mqtt_disconnect();
+                    // Wait for actuators. If no actions in 5 minutes, restart loop
+            printf("i'm here\n");
         }
         else{
             printf("Geofence is not violated, who cares about position?\n");
-        }
+            printf("i'm here 2\n");
 
-        // Sleep for 10 sec
-        xtimer_sleep(10);
+            // Sleep for 10 sec
+            xtimer_periodic_wakeup(&last, DELAY);
+        }
     }
 
     return 0;
