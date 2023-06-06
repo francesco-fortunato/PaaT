@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import * as L from 'leaflet';
 import { PetService } from '../pet.service';
 import '@geoman-io/leaflet-geoman-free';
+import 'leaflet-draw';
+import 'leaflet-draw-drag';
 
 @Component({
   selector: 'app-map',
@@ -9,10 +11,11 @@ import '@geoman-io/leaflet-geoman-free';
   styleUrls: ['./map.component.css'],
 })
 export class MapComponent {
-  private map: L.Map | undefined;
+  private map: L.DrawMap | undefined;
   gps: L.Marker | undefined;
   pet: L.Marker | undefined;
-  private geoFence: L.Polygon<any> | undefined;
+  // private geoFence: L.Polygon<any> | undefined;
+  private geoFence: L.Rectangle | undefined;
   private gpsIcon = L.icon({
     iconUrl: 'assets/gps.png',
     iconSize: [40, 40],
@@ -64,7 +67,10 @@ export class MapComponent {
     tiles.addTo(this.map);
     this.petService.getGeofence(1).subscribe((res) => {
       if (res) {
-        this.geoFence = L.polygon(res.device_data[0], {
+        // this.geoFence = L.polygon(res.device_data[0], {
+        //   fillOpacity: 0.3,
+        // });
+        this.geoFence = L.rectangle(L.latLngBounds(res.device_data[0]), {
           fillOpacity: 0.3,
         });
         if (this.map) {
@@ -72,10 +78,27 @@ export class MapComponent {
         }
       }
     });
-    this.map.on('pm:create', (e) => {
+    // this.map.on('pm:create', (e) => {
+    //   if (this.map) {
+    //     if (e.layer instanceof L.Polygon) {
+    //       this.geoFence = e.layer;
+    //       this.geoFence.addTo(this.map);
+    //       this.editingFence = false;
+    //       this.petService
+    //         .saveGeofence(1, this.geoFence.getLatLngs())
+    //         .subscribe({
+    //           next: () => {},
+    //           error: (e) => console.error(e),
+    //           complete: () => console.info('complete'),
+    //         });
+    //     }
+    //   }
+    // });
+    this.map.on('draw:created', (e) => {
       if (this.map) {
-        if (e.layer instanceof L.Polygon) {
-          this.geoFence = e.layer;
+        this.geoFence = e.layer;
+        if (this.geoFence) {
+          console.log(this.geoFence.getLatLngs());
           this.geoFence.addTo(this.map);
           this.editingFence = false;
           this.petService
@@ -271,7 +294,8 @@ export class MapComponent {
     if (this.map) {
       if (!this.geoFence) {
         this.editingFence = true;
-        this.map.pm.enableDraw('Polygon', {});
+        // this.map.pm.enableDraw('Polygon', {});
+        new L.Draw.Rectangle(this.map).enable();
       } else {
         if (this.editingFence) {
           this.map.pm.disableGlobalEditMode();
