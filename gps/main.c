@@ -115,6 +115,8 @@ static void _on_msg_received(MessageData *data)
 
     int count = 0;
 
+    printf("%s\n", message);
+
     // Parse the string and extract the geofence
     char *token = strtok(message, "[,]");
     while (token != NULL && count < 8)
@@ -157,6 +159,9 @@ static void _on_msg_received(MessageData *data)
             }
         }
     }
+
+    printf("\nMaxLat: %f, MinLng: %f, MinLat: %f, MaxLng: %f\n",
+            geofenceMaxLat, geofenceMinLng, geofenceMinLat, geofenceMaxLng);
 
     // Print the extracted geofence
     for (int i = 0; i < count; i++)
@@ -380,9 +385,7 @@ int main(void)
                     (uint8_t *)message.payload, topic, (int)message.qos);
 
             mqtt_disconnect();
-            xtimer_sleep(5);
             mqtt_connect();
-            xtimer_sleep(5);
 
             printf("Geofence: Subscribing to %s\n", sub_topic);
             int ret = MQTTSubscribe(&client,
@@ -400,6 +403,7 @@ int main(void)
         }
     }
 
+    // Wait for geofence
     while (1){
         if (geofence[0]!=0.0){
             printf("GOT GEOFENCE\n");
@@ -427,17 +431,16 @@ int main(void)
     gpio_init(GPS_CE_PIN, GPIO_OUT);
 
     //to be removed
-    latitude = 41.896015603272;
+    latitude = 51.896015603272;
     longitude = 12.493740198896;
 
     while (1)
     {
+        if (!client.isconnected){
+            mqtt_connect();
+        }
         satellitesNum = 3;
         bool lorawanWakeUp = false;
-        /*if (nextLoRaWanWakeUp <= xtimer_now())
-        {
-            lorawanWakeUp = true;
-        }*/
         // GPS power on
         gpio_write(GPS_CE_PIN, 1);
         printf("GPS power on\n");
@@ -456,7 +459,7 @@ int main(void)
 
         if (satellitesNum >= 3)
         {
-            geofenceViolated = isInGeofence(latitude, longitude);
+            geofenceViolated = isInGeofence(51.00000, longitude);
 
             // if geofence violated set sleep for LoRaWAN to 5min else 1h
             if (geofenceViolated)
@@ -471,33 +474,6 @@ int main(void)
 
         if (geofenceViolated || lorawanWakeUp)
         {
-            // subscribe to check if new geofence published
-            // parse response message and set lightOn and soundOn, edit geofence if updated
-            // lightOn = false;
-            // soundOn = false;
-            // geofenceMinLat = 0;
-            // geofenceMaxLat = 0;
-            // geofenceMinLng = 0;
-            // geofenceMaxLng = 0;
-            // compute if the new geofence is violated if updated
-            /*bool geofenceUpdated = false; // to be removed
-            if (geofence[0]!=0.0){
-                geofenceUpdated = true;
-            }
-            if (geofenceUpdated)
-            {
-
-                // if geofence violated set sleep for LoRaWAN to 5min else 1h
-                if (geofenceViolated)
-                {
-                    nextLoRaWanWakeUp = xtimer_now() + 300000;
-                    // send new MQTT message for violation???
-                }
-                else
-                {
-                    nextLoRaWanWakeUp = xtimer_now() + 3600000;
-                }
-            }*/
             // encrypt msg with AES
             char* lati= "41.896015603272";
             char* longi="12.493740198896";
@@ -508,8 +484,8 @@ int main(void)
                 lati, (char*)lat_encrypted);
 
             char json[500];
-            sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%s\", \"Longitude\": \"%s\", \"Satellites\": \"%d\", \"GeofenceViolated\": %s}",
-                    1, lat_encrypted, lon_encrypted, satellitesNum, geofenceViolated ? "true" : "false");
+            sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%s\", \"Longitude\": \"%s\", \"Satellites\": \"%d\", \"l\": \"%s\", \"s\": \"%s\"}",
+                    1, lat_encrypted, lon_encrypted, satellitesNum, lightOn ? "true" : "false", soundOn ? "true" : "false");
 
             uint8_t *msg_to_be_sent = (uint8_t*)json;
 
@@ -537,7 +513,9 @@ int main(void)
 
             free(lat_encrypted);
             free(lon_encrypted);
+
             // wait for response message or timeout
+            
             xtimer_sleep(30); // TODO
         }
         else{

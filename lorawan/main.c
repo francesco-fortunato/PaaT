@@ -43,10 +43,10 @@
 #define PRINT_KEY_LINE_LENGTH 5
 
 
-/* By default, messages are sent every 20s to respect the duty cycle
+/* By default, messages are sent every 30s to respect the duty cycle
    on each channel */
 #ifndef SEND_PERIOD_S
-#define SEND_PERIOD_S       (20U)
+#define SEND_PERIOD_S       (30U)
 #endif
 
 /* Low-power mode level */
