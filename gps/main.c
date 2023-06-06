@@ -85,7 +85,8 @@ int i = 0;
 char c;
 
 float geofence[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-char* sub_topic = "geofence";
+char* sub_topic_geofence = "geofence";
+char* sub_topic_actuators = "actuators/";
 char *topic = MQTT_TOPIC;
 
 static bool isInGeofence(float latitude, float longitude)
@@ -93,7 +94,7 @@ static bool isInGeofence(float latitude, float longitude)
     // TBD: THRESHOLD ERROR
     if (latitude > geofenceMaxLat || latitude < geofenceMinLat || longitude > geofenceMaxLng || longitude < geofenceMinLng) 
     {
-        printf("GEOFENCE IS VIOLATED");
+        printf("GEOFENCE IS VIOLATED\n");
         return true;
     }
     else
@@ -113,61 +114,82 @@ static void _on_msg_received(MessageData *data)
     // Extract the received string
     char *message = (char *)data->message->payload;
 
-    int count = 0;
+    // If the topic is geofence, update geofence
+    if (strcmp(data->topicName->lenstring.data, "geofence") == 0){
 
-    printf("%s\n", message);
+        int count = 0;
 
-    // Parse the string and extract the geofence
-    char *token = strtok(message, "[,]");
-    while (token != NULL && count < 8)
-    {
-        geofence[count] = atof(token);
-        token = strtok(NULL, ",");
-        count++;
-    }
+        // Parse the string and extract the geofence
+        char *token = strtok(message, "[,]");
+        while (token != NULL && count < 8)
+        {
+            geofence[count] = atof(token);
+            token = strtok(NULL, ",");
+            count++;
+        }
 
-    // Geofence will have this form: {lat1, lon1, lat2, lon2, ...}
+        // Geofence will have this form: {lat1, lon1, lat2, lon2, ...}
 
-    // Assign value to maxLat and minLat
-    for (int i = 0; i < 8; i += 2) {
-        float latitude = geofence[i];
-        if (i == 0) {
-            geofenceMinLat = latitude;
-            geofenceMaxLat = latitude;
-        } else {
-            if (latitude < geofenceMinLat) {
-            geofenceMinLat = latitude;
-            }
-            if (latitude > geofenceMaxLat) {
-            geofenceMaxLat = latitude;
+        // Assign value to maxLat and minLat
+        for (int i = 0; i < 8; i += 2) {
+            float latitude = geofence[i];
+            if (i == 0) {
+                geofenceMinLat = latitude;
+                geofenceMaxLat = latitude;
+            } else {
+                if (latitude < geofenceMinLat) {
+                geofenceMinLat = latitude;
+                }
+                if (latitude > geofenceMaxLat) {
+                geofenceMaxLat = latitude;
+                }
             }
         }
-    }
 
-    // Assign value to maxLon and minLon
-    for (int i = 1; i < 8; i += 2) {
-        float longitude = geofence[i];
-        if (i == 1) {
-            geofenceMinLng = longitude;
-            geofenceMaxLng = longitude;
-        } else {
-            if (longitude < geofenceMinLng) {
-            geofenceMinLng = longitude;
-            }
-            if (longitude > geofenceMaxLng) {
-            geofenceMaxLng = longitude;
+        // Assign value to maxLon and minLon
+        for (int i = 1; i < 8; i += 2) {
+            float longitude = geofence[i];
+            if (i == 1) {
+                geofenceMinLng = longitude;
+                geofenceMaxLng = longitude;
+            } else {
+                if (longitude < geofenceMinLng) {
+                geofenceMinLng = longitude;
+                }
+                if (longitude > geofenceMaxLng) {
+                geofenceMaxLng = longitude;
+                }
             }
         }
+
+        printf("\nMaxLat: %f, MinLng: %f, MinLat: %f, MaxLng: %f\n",
+                geofenceMaxLat, geofenceMinLng, geofenceMinLat, geofenceMaxLng);
+
+        // Print the extracted geofence
+        for (int i = 0; i < count; i++)
+        {
+            printf("Value %d: %.12f\n", i + 1, geofence[i]);
+        }
+    }
+    else if (strcmp(data->topicName->lenstring.data, "actuators/") == 0) {
+
+        int count = 0;
+        char *token = strtok(message, "[,]");
+        
+        while (token != NULL && count < 2) {
+            if (count == 0) {
+                lightOn = (strcmp(token, "'true'") == 0 || strcmp(token, "true") == 0) ? true : false;
+                token = strtok(NULL, "', ");
+                count++;
+            } else {
+                soundOn = (strcmp(token, "'true'") == 0 || strcmp(token, "true") == 0) ? true : false;
+                count++;
+            }
+        }
+        
+        printf("Light: %s, Sound: %s\n", lightOn ? "true" : "false", soundOn ? "true" : "false");
     }
 
-    printf("\nMaxLat: %f, MinLng: %f, MinLat: %f, MaxLng: %f\n",
-            geofenceMaxLat, geofenceMinLng, geofenceMinLat, geofenceMaxLng);
-
-    // Print the extracted geofence
-    for (int i = 0; i < count; i++)
-    {
-        printf("Value %d: %.12f\n", i + 1, geofence[i]);
-    }
 }
 
 static int mqtt_disconnect(void)
@@ -387,18 +409,18 @@ int main(void)
             mqtt_disconnect();
             mqtt_connect();
 
-            printf("Geofence: Subscribing to %s\n", sub_topic);
+            printf("Geofence: Subscribing to %s\n", sub_topic_geofence);
             int ret = MQTTSubscribe(&client,
-                                    sub_topic, QOS2, _on_msg_received);
+                                    sub_topic_geofence, QOS2, _on_msg_received);
             if (ret < 0)
             {
                 printf("Geofence: Unable to subscribe to %s (%d)\n",
-                    sub_topic, ret);
+                    sub_topic_geofence, ret);
             }
             else
             {
                 printf("Geofence: Now subscribed to %s, QOS %d\n",
-                    sub_topic, (int)QOS2);
+                    sub_topic_geofence, (int)QOS2);
             }
         }
     }
@@ -407,13 +429,13 @@ int main(void)
     while (1){
         if (geofence[0]!=0.0){
             printf("GOT GEOFENCE\n");
-            int unsub = MQTTUnsubscribe(&client, sub_topic);
+            int unsub = MQTTUnsubscribe(&client, sub_topic_geofence);
             if (unsub < 0) {
-                printf("mqtt_example: Unable to unsubscribe from topic: %s\n", sub_topic);
+                printf("mqtt_example: Unable to unsubscribe from topic: %s\n", sub_topic_geofence);
                 mqtt_disconnect();
             }
             else {
-                printf("mqtt_example: Unsubscribed from topic:%s\n", sub_topic);
+                printf("mqtt_example: Unsubscribed from topic:%s\n", sub_topic_geofence);
             }
             break;
         }
@@ -421,10 +443,6 @@ int main(void)
             printf("No geofence\n");
             xtimer_sleep(5);
         }
-    }
-
-    if (!client.isconnected){
-        mqtt_connect();
     }
 
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
@@ -514,9 +532,27 @@ int main(void)
             free(lat_encrypted);
             free(lon_encrypted);
 
-            // wait for response message or timeout
-            
-            xtimer_sleep(30); // TODO
+            mqtt_disconnect();
+            mqtt_connect();
+
+            printf("Get Light and Sound: Subscribing to %s\n", sub_topic_actuators);
+            int sub = MQTTSubscribe(&client,
+                                    sub_topic_actuators, QOS2, _on_msg_received);
+            if (sub < 0)
+            {
+                printf("Get Light and Sound: Unable to subscribe to %s (%d)\n",
+                    sub_topic_actuators, sub);
+            }
+            else
+            {
+                printf("Get Light and Sound: Now subscribed to %s, QOS %d\n",
+                    sub_topic_actuators, (int)QOS2);
+            }
+
+            // Wait for actuators. If no actions in 5 minutes, restart loop
+
+            xtimer_sleep(60);
+            mqtt_disconnect();
         }
         else{
             printf("Geofence is not violated, who cares about position?\n");

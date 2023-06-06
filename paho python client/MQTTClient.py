@@ -51,7 +51,7 @@ def on_message(_client, _userdata, message):
         # Convert the combined item to a JSON string
         json_payload = json.dumps(combined_item)
 
-        time.sleep(15)
+        time.sleep(5)
 
         MQTT_CLIENT.publish(MQTT_PUB_TOPIC_GEOFENCE, json_payload, 2)
         print("ho inviato: ", combined_item)
@@ -124,8 +124,14 @@ def on_my_message(_client, _userdata, message):
         print("Light:", light)
         print("Buzz:", buzz)
 
+        combined_item = [light, buzz]
+
+        MQTT_CLIENT.publish(MQTT_SUB_TOPIC_CONTROL, str(combined_item), 2)
+        print("ho inviato: ", combined_item)
+
     else:
         print("No match found.")
+
 
 # On connect subscribe to topic
 def on_connect(_client, _userdata, _flags, result):
