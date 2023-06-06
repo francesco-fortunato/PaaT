@@ -57,7 +57,7 @@ def on_message(_client, _userdata, message):
         print("ho inviato: ", combined_item)
     
     else:
-        pattern = r'\{"id": "(.*?)", "Latitude": "(.*?)", "Longitude": "(.*?)", "Satellites": "(.*?)", "GeofenceViolated": (.*?)\}'
+        pattern = r'\{"id": "(.*?)", "Latitude": "(.*?)", "Longitude": "(.*?)", "Satellites": "(.*?)", "l": "(.*?)", "s": "(.*?)"\}'
 
         match = re.search(pattern, r"{}".format(payload))
 
@@ -66,13 +66,16 @@ def on_message(_client, _userdata, message):
             latitude_value = match.group(2)
             longitude_value = match.group(3)
             satellites_value = match.group(4)
-            geofence_violated_value = match.group(5)
+            light_value = match.group(5)
+            sound_value = match.group(6)
 
             print("ID:", id_value)
             print("Latitude:", latitude_value)
             print("Longitude:", longitude_value)
             print("Satellites:", satellites_value)
-            print("Geofence Violated:", geofence_violated_value)
+            print("Light:", light_value)
+            print("Sound:", sound_value)
+
         else:
             print("No match found.")
 
@@ -86,7 +89,8 @@ def on_message(_client, _userdata, message):
             'latitude': base64.b64encode(latitude_bytes).decode('utf-8'),
             'longitude': base64.b64encode(longitude_bytes).decode('utf-8'),
             'sat_num': satellites_value,
-            'geofence_violated': geofence_violated_value
+            'light': light_value,
+            'sound': sound_value
         }
 
         json_payload = json.dumps(new_payload)
@@ -101,6 +105,28 @@ def on_message(_client, _userdata, message):
             print("Message " + json_payload + " published to topic " + topic)
     print('-----')
     
+
+# Set the callback function for MQTT messages on myMQTTClient
+def on_my_message(_client, _userdata, message):
+    """Handle messages received on myMQTTClient"""
+    # Process the received message here
+    payload = message.payload
+    print("Received message on myMQTTClient:", payload)
+
+    pattern = r'\["(.*?)","(.*?)"\]'
+
+    match = re.search(pattern, payload.decode())
+
+    if match:
+        light = match.group(1)
+        buzz = match.group(2)
+
+        print("Light:", light)
+        print("Buzz:", buzz)
+
+    else:
+        print("No match found.")
+
 # On connect subscribe to topic
 def on_connect(_client, _userdata, _flags, result):
     """Subscribe to input topic"""
@@ -164,6 +190,7 @@ myMQTTClient.configureMQTTOperationTimeout(5)  # 5 sec
 MQTT_SUB_TOPIC = "sensor/gps"
 MQTT_PUB_TOPIC = "device/"
 MQTT_PUB_TOPIC_GEOFENCE = "geofence"
+MQTT_SUB_TOPIC_CONTROL = "actuators/"
 
 # Create a MQTT client instance
 MQTT_CLIENT = mqtt.Client(client_id=MQTT_BROKER_CLIENT_ID)
@@ -173,7 +200,9 @@ def main():
     MQTT_CLIENT.on_connect = on_connect
     MQTT_CLIENT.on_message = on_message
     MQTT_CLIENT.connect(MQTT_BROKER_ADDR, MQTT_BROKER_PORT)
+    # Configure the callback function for myMQTTClient
     myMQTTClient.connect()
+    myMQTTClient.subscribe(MQTT_SUB_TOPIC_CONTROL, 0, on_my_message)
     MQTT_CLIENT.loop_forever()
 
 if __name__ == '__main__':
