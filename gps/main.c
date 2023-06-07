@@ -266,8 +266,8 @@ static void _on_msg_received(MessageData *data)
         }
         
         printf("Light: %s, Sound: %s\n", lightOn ? "true" : "false", soundOn ? "true" : "false");
-                    printf("i'm here6");
     }
+
 }
 
 // Function to print bytes 
@@ -381,12 +381,7 @@ void *toggle_led_thread(void *arg){
     (void) arg;
     while(1){    
         if (lightOn){
-            printf("LIGHT ON\n");
             LED_ON(0);
-            xtimer_sleep(25);
-                        printf("i'm here3");
-
-
         }
         else{
             printf("LIGHT OFF\n");
@@ -506,12 +501,12 @@ int main(void)
     longitude = 12.493740198896;
 
     thread_pid_buzzer = thread_create(stack1, sizeof(stack1),
-                    THREAD_PRIORITY_MAIN - 1,
+                    THREAD_PRIORITY_MAIN + 1,
                     THREAD_CREATE_SLEEPING,
                     buzzer_thread,
                     NULL, "buzzer_thread");
     thread_pid_led = thread_create(stack2, sizeof(stack2),
-                    THREAD_PRIORITY_MAIN - 2,
+                    THREAD_PRIORITY_MAIN +1,
                     THREAD_CREATE_SLEEPING,
                     toggle_led_thread,
                     NULL, "toggle_led_thread");
@@ -614,17 +609,24 @@ int main(void)
                 printf("Get Light and Sound: Now subscribed to %s, QOS %d\n",
                     emergence_topic, (int)QOS2);
             }
+
+            bool tmp_led = lightOn;
             
-            bool actual_light=lightOn;
-
-            for(int i = 0; i<10; i++){
-                if(actual_light!=lightOn){
-                    actual_light = lightOn;
-                    if(lightOn) thread_wakeup(thread_pid_led);
+            for(int f = 0; f<10; f++){
+                if(lightOn && tmp_led==false)
+                { 
+                    thread_wakeup(thread_pid_led);
                 }
-                if(!client.isconnected){
-                    //mqtt_disconnect();
-
+                if (lightOn!=tmp_led){
+                    int unsub = MQTTUnsubscribe(&client, emergence_topic);
+                    if (unsub < 0) {
+                        printf("mqtt_example: Unable to unsubscribe from topic: %s\n", emergence_topic);
+                        mqtt_disconnect();
+                    }
+                    else {
+                        printf("mqtt_example: Unsubscribed from topic:%s\n", emergence_topic);
+                    }
+                    mqtt_disconnect();
                     mqtt_connect();
 
                     printf("Get Light and Sound: Subscribing to %s\n", emergence_topic);
@@ -641,8 +643,10 @@ int main(void)
                             emergence_topic, (int)QOS2);
                     }
                 }
+                tmp_led = lightOn;
+
                 printf("inside waiting for godot loop\n"); 
-                xtimer_periodic_wakeup(&last, 30 * US_PER_SEC);
+                xtimer_sleep(10);
             }
 
                     // Wait for actuators. If no actions in 5 minutes, restart loop
