@@ -9,19 +9,25 @@ import * as L from 'leaflet';
 export class PetService {
   constructor(private http: HttpClient) {}
 
-  getPetStatus(): {
-    online: boolean;
-    position: { lat: number; lng: number };
-    timestamp: number;
-  } {
-    return {
-      online: true,
-      position: {
-        lat: 41.8941 + (Math.random() - 0.5) / 100,
-        lng: 12.495 + (Math.random() - 0.5) / 100,
-      },
-      timestamp: Date.now() - 10000,
-    };
+  getPetStatus(id: number): Observable<{
+    Light: string;
+    Sound: string;
+    sample_time: number;
+    Longitude: string;
+    Latitude: string;
+    device_id: number;
+  }> {
+    return this.http.get<{
+      Light: string;
+      Sound: string;
+      sample_time: number;
+      Longitude: string;
+      Latitude: string;
+      device_id: number;
+    }>(
+      'https://wuufd3nn7k.execute-api.us-east-1.amazonaws.com/beta/get-actual-data?id=' +
+        id
+    );
   }
 
   getGeofence(id: number): Observable<{
@@ -60,6 +66,17 @@ export class PetService {
   getLatestPetPath(id: number): Observable<any> {
     return this.http.get(
       'https://wuufd3nn7k.execute-api.us-east-1.amazonaws.com/beta/location-history?id=' +
+        id
+    );
+  }
+
+  setLightOrSound(id: number, light: boolean, sound: boolean): Observable<any> {
+    return this.http.get(
+      'https://wuufd3nn7k.execute-api.us-east-1.amazonaws.com/beta/set-light-and-sound?light=' +
+        (light ? 'y' : 'n') +
+        '&buzz=' +
+        (sound ? 'y' : 'n') +
+        '&id=' +
         id
     );
   }

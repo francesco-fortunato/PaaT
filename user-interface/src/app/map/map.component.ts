@@ -33,9 +33,12 @@ export class MapComponent {
   timelineOpen: boolean = false;
   petStatus:
     | {
-        online: boolean;
-        position: { lat: number; lng: number };
-        timestamp: number;
+        Light: string;
+        Sound: string;
+        sample_time: number;
+        Longitude: string;
+        Latitude: string;
+        device_id: number;
       }
     | undefined;
   timeline: L.LayerGroup | undefined;
@@ -141,19 +144,23 @@ export class MapComponent {
   }
 
   initPet(): void {
-    this.petStatus = this.petService.getPetStatus();
-    if (this.map && this.petStatus?.online) {
-      this.pet = L.marker(this.petStatus.position, {
-        icon: this.petIcon,
-      });
-      this.pet.bindPopup(
-        'Last position update: ' +
-          new Date(this.petStatus.timestamp).toLocaleString('it')
-      );
-      this.pet.addTo(this.map);
-
+    this.petService.getPetStatus(1).subscribe((res) => {
+      this.petStatus = res;
+      if (this.map) {
+        this.pet = L.marker(
+          L.latLng(+this.petStatus.Latitude, +this.petStatus.Longitude),
+          {
+            icon: this.petIcon,
+          }
+        );
+        this.pet.bindPopup(
+          'Last position update: ' +
+            new Date(this.petStatus.sample_time).toLocaleString('it')
+        );
+        this.pet.addTo(this.map);
+      }
       this.gotoPet();
-    }
+    });
   }
 
   gotoGps(): void {
@@ -177,21 +184,27 @@ export class MapComponent {
   toggleLight(): void {
     if (this.lightOn) {
       this.lightOn = false;
-      // this.petService.lightOff();
     } else {
       this.lightOn = true;
-      // this.petService.lightOn();
     }
+    this.petService.setLightOrSound(1, this.lightOn, this.soundOn).subscribe({
+      next: () => {},
+      error: (e) => (this.lightOn = !this.lightOn),
+      complete: () => console.info('complete'),
+    });
   }
 
   toggleSound(): void {
     if (this.soundOn) {
       this.soundOn = false;
-      //   this.petService.soundOff();
     } else {
       this.soundOn = true;
-      //   this.petService.soundOn();
     }
+    this.petService.setLightOrSound(1, this.lightOn, this.soundOn).subscribe({
+      next: () => {},
+      error: (e) => (this.soundOn = !this.soundOn),
+      complete: () => console.info('complete'),
+    });
   }
 
   toggleTimeline(): void {
@@ -334,23 +347,32 @@ export class MapComponent {
   // update periodically the pet position
   trackPet(): void {
     setInterval(() => {
-      this.petStatus = this.petService.getPetStatus();
-      if (this.petStatus?.online) {
-        if (!this.pet) {
-          this.pet = L.marker(this.petStatus.position, {
-            icon: this.petIcon,
-          });
-        } else {
-          this.pet.setLatLng(this.petStatus.position);
+      this.petService.getPetStatus(1).subscribe((res) => {
+        this.petStatus = res;
+        if (this.map) {
+          if (!this.pet) {
+            this.pet = L.marker(
+              L.latLng(+this.petStatus.Latitude, +this.petStatus.Longitude),
+              {
+                icon: this.petIcon,
+              }
+            );
+            this.pet.addTo(this.map);
+            this.gotoPet();
+          } else {
+            this.pet.setLatLng(
+              L.latLng(+this.petStatus.Latitude, +this.petStatus.Longitude)
+            );
+          }
+          this.pet.bindPopup(
+            'Last position update: ' +
+              new Date(this.petStatus.sample_time).toLocaleString('it')
+          );
         }
-        this.pet.bindPopup(
-          'Last position update: ' +
-            new Date(this.petStatus.timestamp).toLocaleString('it')
-        );
-      } else {
-        this.pet = undefined;
-      }
-    }, 10000);
+        this.lightOn = this.petStatus.Light === 'true';
+        this.soundOn = this.petStatus.Sound === 'true';
+      });
+    }, 60000);
   }
   //update periodically the gps position
   trackGps(): void {
