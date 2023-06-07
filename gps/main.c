@@ -611,13 +611,18 @@ int main(void)
             }
 
             bool tmp_led = lightOn;
+            bool tmp_buzz = soundOn;
             
             for(int f = 0; f<10; f++){
                 if(lightOn && tmp_led==false)
                 { 
                     thread_wakeup(thread_pid_led);
                 }
-                if (lightOn!=tmp_led){
+                if(soundOn && tmp_buzz==false)
+                { 
+                    thread_wakeup(thread_pid_buzzer);
+                }
+                if (lightOn!=tmp_led || soundOn!=tmp_buzz){
                     int unsub = MQTTUnsubscribe(&client, emergence_topic);
                     if (unsub < 0) {
                         printf("mqtt_example: Unable to unsubscribe from topic: %s\n", emergence_topic);
@@ -644,6 +649,7 @@ int main(void)
                     }
                 }
                 tmp_led = lightOn;
+                tmp_buzz = soundOn;
 
                 printf("inside waiting for godot loop\n"); 
                 xtimer_sleep(10);
