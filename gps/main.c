@@ -79,8 +79,7 @@ float geofenceMinLat = 0;
 float geofenceMaxLat = 0;
 float geofenceMinLng = 0;
 float geofenceMaxLng = 0;
-bool geofenceViolated = false;
-int nextLoRaWanWakeUp = 0;
+bool geofenceViolated;
 
 cipher_context_t cyctx;
 uint8_t key[AES_KEY_SIZE_128] = "PeShVmYq3s6v9yfB";
@@ -548,7 +547,7 @@ int main(void)
         {
             mqtt_connect();
         }
-        bool lorawanWakeUp = false;
+
         // GPS power on
         gpio_write(GPS_CE_PIN, 1);
         printf("GPS power on\n");
@@ -557,7 +556,7 @@ int main(void)
         int checks = 0;
         while (checks < 10 && satellitesNum < 4)
         {
-            xtimer_sleep(10); // TBD
+            //xtimer_sleep(10); // TBD
             checks++;
         }
 
@@ -568,25 +567,24 @@ int main(void)
         latitude = minmea_tocoord(&latitudeStruct);
         longitude = minmea_tocoord(&longitudeStruct);
 
-        char *lati = sprintf("%.12f", latitude);
-        char *longi = sprintf("%.12f", longitude);
+        latitude = 41.89601560;
+        longitude = 12.4937401988;
 
-        if (satellitesNum >= 4)
+        char lat[16];
+        char lng[16];
+
+        sprintf(lat, "%.12f", latitude);
+        sprintf(lng, "%.12f", longitude);
+
+        char* lati = lat;
+        char* longi = lng;
+
+        //if (satellitesNum >= 4)
         {
             geofenceViolated = isInGeofence(latitude, longitude);
-
-            // if geofence violated set sleep for LoRaWAN to 5min else 1h
-            if (geofenceViolated)
-            {
-                nextLoRaWanWakeUp = xtimer_now() + 300000;
-            }
-            else
-            {
-                nextLoRaWanWakeUp = xtimer_now() + 3600000;
-            }
         }
 
-        if (geofenceViolated || lorawanWakeUp)
+        if (geofenceViolated)
         {
             // encrypt msg with AES
             uint8_t *lat_encrypted = aes_128_encrypt(lati);
@@ -689,7 +687,7 @@ int main(void)
                 tmp_buzz = soundOn;
 
                 printf("inside waiting for godot loop\n");
-                xtimer_sleep(10);
+                xtimer_sleep(30);
             }
 
             // Wait for actuators. If no actions in 5 minutes, restart loop
@@ -700,7 +698,7 @@ int main(void)
             printf("Geofence is not violated, who cares about position?\n");
             printf("i'm here 2\n");
 
-            // Sleep for 10 sec
+            // Sleep for 1h
             xtimer_periodic_wakeup(&last, DELAY);
         }
     }
