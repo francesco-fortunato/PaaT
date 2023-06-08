@@ -32,8 +32,7 @@
 #include "MQTTClient.h"
 #include "crypto/aes.h"
 #include "led.h"
-#define DELAY               (60 * US_PER_SEC)
-
+#define DELAY (60 * US_PER_SEC)
 
 // MQTT client settings
 #define BUF_SIZE 1024
@@ -57,7 +56,7 @@
 
 #define PRINT_KEY_LINE_LENGTH 5
 
-#define BUZZER_PIN          GPIO23
+#define BUZZER_PIN GPIO23
 
 static MQTTClient client;
 static Network network;
@@ -69,8 +68,10 @@ static unsigned char readbuf[BUF_SIZE];
 #define GPS_BAUDRATE 9600
 #define GPS_CE_PIN GPIO2
 
-float latitude = 0;
-float longitude = 0;
+struct minmea_float latitudeStruct;
+struct minmea_float longitudeStruct;
+float latitude = 0.0;
+float longitude = 0.0;
 int satellitesNum = 0;
 bool soundOn = false;
 bool lightOn = false;
@@ -91,8 +92,8 @@ int i = 0;
 char c;
 
 float geofence[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-char* sub_topic_geofence = "geofence";
-char* emergence_topic = "actuators/";
+char *sub_topic_geofence = "geofence";
+char *emergence_topic = "actuators/";
 char *topic = MQTT_TOPIC;
 
 char stack1[THREAD_STACKSIZE_MAIN];
@@ -103,7 +104,7 @@ kernel_pid_t thread_pid_led;
 static bool isInGeofence(float latitude, float longitude)
 {
     // TBD: THRESHOLD ERROR
-    if (latitude > geofenceMaxLat || latitude < geofenceMinLat || longitude > geofenceMaxLng || longitude < geofenceMinLng) 
+    if (latitude > geofenceMaxLat || latitude < geofenceMinLat || longitude > geofenceMaxLng || longitude < geofenceMinLng)
     {
         printf("GEOFENCE IS VIOLATED\n");
         return true;
@@ -118,10 +119,12 @@ static int mqtt_disconnect(void)
 {
 
     int res = MQTTDisconnect(&client);
-    if (res < 0) {
+    if (res < 0)
+    {
         printf("mqtt_example: Unable to disconnect\n");
     }
-    else {
+    else
+    {
         printf("mqtt_example: Disconnect successful\n");
     }
 
@@ -191,7 +194,8 @@ static void _on_msg_received(MessageData *data)
     char *message = (char *)data->message->payload;
 
     // If the topic is geofence, update geofence
-    if (strcmp(data->topicName->lenstring.data, "geofence") == 0){
+    if (strcmp(data->topicName->lenstring.data, "geofence") == 0)
+    {
 
         int count = 0;
 
@@ -207,39 +211,51 @@ static void _on_msg_received(MessageData *data)
         // Geofence will have this form: {lat1, lon1, lat2, lon2, ...}
 
         // Assign value to maxLat and minLat
-        for (int i = 0; i < 8; i += 2) {
-            float latitude = geofence[i];
-            if (i == 0) {
-                geofenceMinLat = latitude;
-                geofenceMaxLat = latitude;
-            } else {
-                if (latitude < geofenceMinLat) {
-                geofenceMinLat = latitude;
+        for (int i = 0; i < 8; i += 2)
+        {
+            float latGF = geofence[i];
+            if (i == 0)
+            {
+                geofenceMinLat = latGF;
+                geofenceMaxLat = latGF;
+            }
+            else
+            {
+                if (latGF < geofenceMinLat)
+                {
+                    geofenceMinLat = latGF;
                 }
-                if (latitude > geofenceMaxLat) {
-                geofenceMaxLat = latitude;
+                if (latGF > geofenceMaxLat)
+                {
+                    geofenceMaxLat = latGF;
                 }
             }
         }
 
         // Assign value to maxLon and minLon
-        for (int i = 1; i < 8; i += 2) {
-            float longitude = geofence[i];
-            if (i == 1) {
-                geofenceMinLng = longitude;
-                geofenceMaxLng = longitude;
-            } else {
-                if (longitude < geofenceMinLng) {
-                geofenceMinLng = longitude;
+        for (int i = 1; i < 8; i += 2)
+        {
+            float lonGF = geofence[i];
+            if (i == 1)
+            {
+                geofenceMinLng = lonGF;
+                geofenceMaxLng = lonGF;
+            }
+            else
+            {
+                if (lonGF < geofenceMinLng)
+                {
+                    geofenceMinLng = lonGF;
                 }
-                if (longitude > geofenceMaxLng) {
-                geofenceMaxLng = longitude;
+                if (lonGF > geofenceMaxLng)
+                {
+                    geofenceMaxLng = lonGF;
                 }
             }
         }
 
         printf("\nMaxLat: %f, MinLng: %f, MinLat: %f, MaxLng: %f\n",
-                geofenceMaxLat, geofenceMinLng, geofenceMinLat, geofenceMaxLng);
+               geofenceMaxLat, geofenceMinLng, geofenceMinLat, geofenceMaxLng);
 
         // Print the extracted geofence
         for (int i = 0; i < count; i++)
@@ -247,30 +263,34 @@ static void _on_msg_received(MessageData *data)
             printf("Value %d: %.12f\n", i + 1, geofence[i]);
         }
     }
-    else if (strcmp(data->topicName->lenstring.data, "actuators/") == 0) {
+    else if (strcmp(data->topicName->lenstring.data, "actuators/") == 0)
+    {
 
         int count = 0;
         char *token = strtok(message, "[,]");
 
         // String is "['true', 'true']"
-        
-        while (token != NULL && count < 2) {
-            if (count == 0) {
+
+        while (token != NULL && count < 2)
+        {
+            if (count == 0)
+            {
                 lightOn = (strcmp(token, "'true'") == 0 || strcmp(token, "true") == 0) ? true : false;
                 token = strtok(NULL, "', ");
                 count++;
-            } else {
+            }
+            else
+            {
                 soundOn = (strcmp(token, "'true'") == 0 || strcmp(token, "true") == 0) ? true : false;
                 count++;
             }
         }
-        
+
         printf("Light: %s, Sound: %s\n", lightOn ? "true" : "false", soundOn ? "true" : "false");
     }
-
 }
 
-// Function to print bytes 
+// Function to print bytes
 void print_bytes(const uint8_t *key, size_t size) // to be removed
 {
     for (size_t i = 0; i < size; i++)
@@ -295,11 +315,11 @@ void bytes_to_hex_string(const uint8_t *bytes, size_t size, char *hex_string)
         // Move the index two positions forward
         index += 2;
     }
-    hex_string[index]='\0';
+    hex_string[index] = '\0';
 }
 
 // Encrypt msg using AES-128
-uint8_t* aes_128_encrypt(const char* msg)
+uint8_t *aes_128_encrypt(const char *msg)
 {
     printf("Unencrypted: %s\n", msg);
 
@@ -315,8 +335,9 @@ uint8_t* aes_128_encrypt(const char* msg)
 
     print_bytes(padded_msg, padded_len);
 
-    uint8_t* encrypted_msg = malloc(padded_len);
-    if (encrypted_msg == NULL) {
+    uint8_t *encrypted_msg = malloc(padded_len);
+    if (encrypted_msg == NULL)
+    {
         printf("Failed to allocate memory\n");
         return NULL;
     }
@@ -330,15 +351,16 @@ uint8_t* aes_128_encrypt(const char* msg)
     print_bytes(encrypted_msg, padded_len);
 
     // Convert encrypted_msg to hex string
-    char* hex_string = malloc((padded_len * 2) + 1);
-    if (hex_string == NULL) {
+    char *hex_string = malloc((padded_len * 2) + 1);
+    if (hex_string == NULL)
+    {
         printf("Failed to allocate memory\n");
         return NULL;
     }
 
     bytes_to_hex_string(encrypted_msg, padded_len, hex_string);
 
-    return (uint8_t*) hex_string;
+    return (uint8_t *)hex_string;
 }
 
 static void gps_rx_cb(void *arg, uint8_t data)
@@ -358,11 +380,8 @@ static void gps_rx_cb(void *arg, uint8_t data)
         {
             if (minmea_parse_gga(&frame, nmea_buffer))
             {
-                //create new temp as int latit and longit. then parse in float and assign them to
-                //latitude and longitude
-                
-                //int latit = frame.latitude.value;
-                //int longit = frame.longitude.value;
+                latitudeStruct = frame.latitude;
+                longitudeStruct = frame.longitude;
                 satellitesNum = frame.satellites_tracked;
             }
         }
@@ -376,14 +395,18 @@ static void gps_rx_cb(void *arg, uint8_t data)
 }
 
 // Led Thread
-void *toggle_led_thread(void *arg){
+void *toggle_led_thread(void *arg)
+{
 
-    (void) arg;
-    while(1){    
-        if (lightOn){
+    (void)arg;
+    while (1)
+    {
+        if (lightOn)
+        {
             LED_ON(0);
         }
-        else{
+        else
+        {
             printf("LIGHT OFF\n");
             LED_OFF(0);
             thread_sleep();
@@ -395,15 +418,19 @@ void *toggle_led_thread(void *arg){
 // Buzzer Thead
 void *buzzer_thread(void *arg)
 {
-    (void) arg;
-    while(1) {
-        if(soundOn) {
+    (void)arg;
+    while (1)
+    {
+        if (soundOn)
+        {
             printf("BUZZ ON\n");
             gpio_set(BUZZER_PIN);
-            xtimer_usleep(400000);  // Wait for 400ms
+            xtimer_usleep(400000); // Wait for 400ms
             gpio_clear(BUZZER_PIN);
-            xtimer_usleep(1000000);  // Wait for 1s
-        } else {
+            xtimer_usleep(1000000); // Wait for 1s
+        }
+        else
+        {
             printf("BUZZ OFF\n");
             thread_sleep();
         }
@@ -435,15 +462,16 @@ int main(void)
 
     int ask_for_geofence;
 
-    char* message_geofence = "Geofence";
+    char *message_geofence = "Geofence";
 
     MQTTMessage message;
     message.qos = QOS2;
     message.retained = IS_RETAINED_MSG;
     message.payload = message_geofence;
     message.payloadlen = strlen(message.payload);
-    
-    if (client.isconnected){
+
+    if (client.isconnected)
+    {
         if ((ask_for_geofence = MQTTPublish(&client, topic, &message)) < 0)
         {
             printf("mqtt_example: Unable to publish (%d)\n", ask_for_geofence);
@@ -451,8 +479,8 @@ int main(void)
         else
         {
             printf("mqtt_example: Message (%s) has been published to topic %s "
-                    "with QOS %d\n",
-                    (uint8_t *)message.payload, topic, (int)message.qos);
+                   "with QOS %d\n",
+                   (uint8_t *)message.payload, topic, (int)message.qos);
 
             mqtt_disconnect();
             mqtt_connect();
@@ -463,31 +491,36 @@ int main(void)
             if (ret < 0)
             {
                 printf("Geofence: Unable to subscribe to %s (%d)\n",
-                    sub_topic_geofence, ret);
+                       sub_topic_geofence, ret);
             }
             else
             {
                 printf("Geofence: Now subscribed to %s, QOS %d\n",
-                    sub_topic_geofence, (int)QOS2);
+                       sub_topic_geofence, (int)QOS2);
             }
         }
     }
 
     // Wait for geofence
-    while (1){
-        if (geofence[0]!=0.0){
+    while (1)
+    {
+        if (geofence[0] != 0.0)
+        {
             printf("GOT GEOFENCE\n");
             int unsub = MQTTUnsubscribe(&client, sub_topic_geofence);
-            if (unsub < 0) {
+            if (unsub < 0)
+            {
                 printf("mqtt_example: Unable to unsubscribe from topic: %s\n", sub_topic_geofence);
                 mqtt_disconnect();
             }
-            else {
+            else
+            {
                 printf("mqtt_example: Unsubscribed from topic:%s\n", sub_topic_geofence);
             }
             break;
         }
-        else{
+        else
+        {
             printf("No geofence\n");
             xtimer_sleep(5);
         }
@@ -496,29 +529,25 @@ int main(void)
     uart_init(GPS_UART_DEV, GPS_BAUDRATE, gps_rx_cb, NULL);
     gpio_init(GPS_CE_PIN, GPIO_OUT);
 
-    //to be removed
-    latitude = 51.896015603272;
-    longitude = 12.493740198896;
-
     thread_pid_buzzer = thread_create(stack1, sizeof(stack1),
-                    THREAD_PRIORITY_MAIN + 1,
-                    THREAD_CREATE_SLEEPING,
-                    buzzer_thread,
-                    NULL, "buzzer_thread");
+                                      THREAD_PRIORITY_MAIN + 1,
+                                      THREAD_CREATE_SLEEPING,
+                                      buzzer_thread,
+                                      NULL, "buzzer_thread");
     thread_pid_led = thread_create(stack2, sizeof(stack2),
-                    THREAD_PRIORITY_MAIN +1,
-                    THREAD_CREATE_SLEEPING,
-                    toggle_led_thread,
-                    NULL, "toggle_led_thread");
+                                   THREAD_PRIORITY_MAIN + 1,
+                                   THREAD_CREATE_SLEEPING,
+                                   toggle_led_thread,
+                                   NULL, "toggle_led_thread");
 
     xtimer_ticks32_t last = xtimer_now();
 
     while (1)
     {
-        if (!client.isconnected){
+        if (!client.isconnected)
+        {
             mqtt_connect();
         }
-        satellitesNum = 3;
         bool lorawanWakeUp = false;
         // GPS power on
         gpio_write(GPS_CE_PIN, 1);
@@ -526,7 +555,7 @@ int main(void)
 
         // Wait for reliable position or timeout
         int checks = 0;
-        while (checks < 10 && satellitesNum < 3)
+        while (checks < 10 && satellitesNum < 4)
         {
             xtimer_sleep(10); // TBD
             checks++;
@@ -536,9 +565,15 @@ int main(void)
         gpio_write(GPS_CE_PIN, 0);
         printf("GPS power off\n");
 
-        if (satellitesNum >= 3)
+        latitude = minmea_tocoord(&latitudeStruct);
+        longitude = minmea_tocoord(&longitudeStruct);
+
+        char *lati = sprintf("%.12f", latitude);
+        char *longi = sprintf("%.12f", longitude);
+
+        if (satellitesNum >= 4)
         {
-            geofenceViolated = isInGeofence(51.00000, longitude);
+            geofenceViolated = isInGeofence(latitude, longitude);
 
             // if geofence violated set sleep for LoRaWAN to 5min else 1h
             if (geofenceViolated)
@@ -554,19 +589,17 @@ int main(void)
         if (geofenceViolated || lorawanWakeUp)
         {
             // encrypt msg with AES
-            char* lati= "41.896015603272";
-            char* longi="12.493740198896";
-            uint8_t* lat_encrypted = aes_128_encrypt(lati);
-            uint8_t* lon_encrypted = aes_128_encrypt(longi);
+            uint8_t *lat_encrypted = aes_128_encrypt(lati);
+            uint8_t *lon_encrypted = aes_128_encrypt(longi);
 
             printf("lati: %s, lat_encrypted: %s\n",
-                lati, (char*)lat_encrypted);
+                   lati, (char *)lat_encrypted);
 
             char json[500];
             sprintf(json, "{\"id\": \"%d\", \"Latitude\": \"%s\", \"Longitude\": \"%s\", \"Satellites\": \"%d\", \"l\": \"%s\", \"s\": \"%s\"}",
                     1, lat_encrypted, lon_encrypted, satellitesNum, lightOn ? "true" : "false", soundOn ? "true" : "false");
 
-            uint8_t *msg_to_be_sent = (uint8_t*)json;
+            uint8_t *msg_to_be_sent = (uint8_t *)json;
 
             // Publish gps value to MQTT broker
             MQTTMessage message;
@@ -602,33 +635,37 @@ int main(void)
             if (sub < 0)
             {
                 printf("Get Light and Sound: Unable to subscribe to %s (%d)\n",
-                    emergence_topic, sub);
+                       emergence_topic, sub);
             }
             else
             {
                 printf("Get Light and Sound: Now subscribed to %s, QOS %d\n",
-                    emergence_topic, (int)QOS2);
+                       emergence_topic, (int)QOS2);
             }
 
             bool tmp_led = lightOn;
             bool tmp_buzz = soundOn;
-            
-            for(int f = 0; f<10; f++){
-                if(lightOn && tmp_led==false)
-                { 
+
+            for (int f = 0; f < 10; f++)
+            {
+                if (lightOn && tmp_led == false)
+                {
                     thread_wakeup(thread_pid_led);
                 }
-                if(soundOn && tmp_buzz==false)
-                { 
+                if (soundOn && tmp_buzz == false)
+                {
                     thread_wakeup(thread_pid_buzzer);
                 }
-                if (lightOn!=tmp_led || soundOn!=tmp_buzz){
+                if (lightOn != tmp_led || soundOn != tmp_buzz)
+                {
                     int unsub = MQTTUnsubscribe(&client, emergence_topic);
-                    if (unsub < 0) {
+                    if (unsub < 0)
+                    {
                         printf("mqtt_example: Unable to unsubscribe from topic: %s\n", emergence_topic);
                         mqtt_disconnect();
                     }
-                    else {
+                    else
+                    {
                         printf("mqtt_example: Unsubscribed from topic:%s\n", emergence_topic);
                     }
                     mqtt_disconnect();
@@ -640,25 +677,26 @@ int main(void)
                     if (sub < 0)
                     {
                         printf("Get Light and Sound: Unable to subscribe to %s (%d)\n",
-                            emergence_topic, sub);
+                               emergence_topic, sub);
                     }
                     else
                     {
                         printf("Get Light and Sound: Now subscribed to %s, QOS %d\n",
-                            emergence_topic, (int)QOS2);
+                               emergence_topic, (int)QOS2);
                     }
                 }
                 tmp_led = lightOn;
                 tmp_buzz = soundOn;
 
-                printf("inside waiting for godot loop\n"); 
+                printf("inside waiting for godot loop\n");
                 xtimer_sleep(10);
             }
 
-                    // Wait for actuators. If no actions in 5 minutes, restart loop
+            // Wait for actuators. If no actions in 5 minutes, restart loop
             printf("i'm here\n");
         }
-        else{
+        else
+        {
             printf("Geofence is not violated, who cares about position?\n");
             printf("i'm here 2\n");
 
