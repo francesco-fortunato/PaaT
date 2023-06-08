@@ -1,7 +1,7 @@
 # Design
 
 ## Conceptual Architecture
-The pet tracking system architecture consists of two main components: an ESP32 v2 Heltec LoRa, with the GPS module, and a receiver. The ESP32 is responsible for collecting location data from the GPS module, processing the data, and sending it to the receivers. Then, the receivers will be responsible for sending the data to AWS cloud service for storage and analysis.
+The pet tracking system architecture consists of two main components: an ESP32 v2 Heltec LoRa, with the GPS module. The ESP32 is responsible for collecting location data from the GPS module, processing the data, and sending it to the receivers. Then, the receivers will be responsible for sending the data to AWS cloud service for storage and analysis.
 
 ![alt](img/scheme.jpg)
 
