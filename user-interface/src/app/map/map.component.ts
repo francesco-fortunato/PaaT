@@ -346,7 +346,11 @@ export class MapComponent {
           this.petService
             .saveGeofence(1, this.geoFence.getLatLngs())
             .subscribe({
-              next: () => {},
+              next: () => {
+                alert(
+                  'Geofence saved! You must now reboot the pet tracker manually.'
+                );
+              },
               error: (e) => console.error(e),
               complete: () => console.info('complete'),
             });
