@@ -7,6 +7,7 @@
   class="map-button"
   (click)="toggleLight()"
   [style.background-color]="lightOn ? '#c0c0ff' : '#ffffff'"
+  [class.button-disabled]="!lightEnabled"
 >
   <img src="assets/light.png" height="32px" />
 </div>
@@ -15,6 +16,7 @@
   class="map-button"
   (click)="toggleSound()"
   [style.background-color]="soundOn ? '#c0c0ff' : '#ffffff'"
+  [class.button-disabled]="!soundEnabled"
 >
   <img src="assets/sound.png" height="32px" />
 </div>

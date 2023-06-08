@@ -42,6 +42,9 @@ export class MapComponent {
       }
     | undefined;
   timeline: L.LayerGroup | undefined;
+  lightEnabled: boolean = false;
+  soundEnabled: boolean = false;
+  lightSoundToggleTimeout: any;
 
   constructor(private petService: PetService) {}
 
@@ -79,6 +82,10 @@ export class MapComponent {
         if (this.map) {
           this.geoFence.addTo(this.map);
         }
+      }
+      if (!this.checkFence()) {
+        this.lightEnabled = true;
+        this.soundEnabled = true;
       }
     });
     // this.map.on('pm:create', (e) => {
@@ -182,29 +189,51 @@ export class MapComponent {
   }
 
   toggleLight(): void {
-    if (this.lightOn) {
-      this.lightOn = false;
+    if (this.lightEnabled) {
+      if (!this.lightOn) {
+        this.lightOn = true;
+      } else {
+        this.lightOn = false;
+      }
+      if (!this.lightSoundToggleTimeout) {
+        this.lightSoundToggleTimeout = setTimeout(() => {
+          this.petService
+            .setLightOrSound(1, this.lightOn, this.soundOn)
+            .subscribe({
+              next: () => {},
+              error: (e) => {},
+              complete: () => console.info('complete'),
+            });
+          this.lightSoundToggleTimeout = undefined;
+        }, 60000);
+      }
     } else {
-      this.lightOn = true;
+      this.lightOn = false;
     }
-    this.petService.setLightOrSound(1, this.lightOn, this.soundOn).subscribe({
-      next: () => {},
-      error: (e) => (this.lightOn = !this.lightOn),
-      complete: () => console.info('complete'),
-    });
   }
 
   toggleSound(): void {
-    if (this.soundOn) {
-      this.soundOn = false;
+    if (this.soundEnabled) {
+      if (!this.soundOn) {
+        this.soundOn = true;
+      } else {
+        this.soundOn = false;
+      }
+      if (!this.lightSoundToggleTimeout) {
+        this.lightSoundToggleTimeout = setTimeout(() => {
+          this.petService
+            .setLightOrSound(1, this.lightOn, this.soundOn)
+            .subscribe({
+              next: () => {},
+              error: (e) => {},
+              complete: () => console.info('complete'),
+            });
+          this.lightSoundToggleTimeout = undefined;
+        }, 60000);
+      }
     } else {
-      this.soundOn = true;
+      this.soundOn = false;
     }
-    this.petService.setLightOrSound(1, this.lightOn, this.soundOn).subscribe({
-      next: () => {},
-      error: (e) => (this.soundOn = !this.soundOn),
-      complete: () => console.info('complete'),
-    });
   }
 
   toggleTimeline(): void {
@@ -371,6 +400,14 @@ export class MapComponent {
         }
         this.lightOn = this.petStatus.Light === 'true';
         this.soundOn = this.petStatus.Sound === 'true';
+
+        if (this.geoFence && this.checkFence()) {
+          this.lightEnabled = false;
+          this.soundEnabled = false;
+        } else {
+          this.lightEnabled = true;
+          this.soundEnabled = true;
+        }
       });
     }, 60000);
   }
@@ -389,5 +426,13 @@ export class MapComponent {
         });
       }
     }, 10000);
+  }
+
+  // check if pet is inside the fence
+  checkFence(): boolean {
+    if (this.geoFence && this.pet) {
+      return this.geoFence.getBounds().contains(this.pet.getLatLng());
+    }
+    return false;
   }
 }
