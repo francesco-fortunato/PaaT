@@ -44,6 +44,7 @@ export class MapComponent {
   timeline: L.LayerGroup | undefined;
   lightEnabled: boolean = false;
   soundEnabled: boolean = false;
+  fenceEnabled: boolean = true;
   lightSoundToggleTimeout: any;
 
   constructor(private petService: PetService) {}
@@ -333,7 +334,7 @@ export class MapComponent {
   // }
 
   toggleFenceOptions(): void {
-    if (this.map) {
+    if (this.map && this.fenceEnabled) {
       if (!this.geoFence) {
         this.editingFence = true;
         // this.map.pm.enableDraw('Polygon', {});
@@ -349,6 +350,9 @@ export class MapComponent {
               error: (e) => console.error(e),
               complete: () => console.info('complete'),
             });
+          this.lightEnabled = false;
+          this.soundEnabled = false;
+          this.fenceEnabled = false;
         } else {
           this.editFence();
         }
@@ -401,6 +405,7 @@ export class MapComponent {
         this.lightOn = this.petStatus.Light === 'true';
         this.soundOn = this.petStatus.Sound === 'true';
 
+        this.fenceEnabled = true;
         if (this.geoFence && this.checkFence()) {
           this.lightEnabled = false;
           this.soundEnabled = false;

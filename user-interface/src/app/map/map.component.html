@@ -33,6 +33,7 @@
   class="map-button"
   (click)="toggleFenceOptions()"
   [style.background-color]="editingFence ? '#c0c0ff' : '#ffffff'"
+  [class.button-disabled]="!fenceEnabled"
 >
   <img src="assets/fence.png" height="32px" />
 </div>
