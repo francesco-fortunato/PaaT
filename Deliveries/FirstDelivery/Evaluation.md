@@ -6,15 +6,15 @@
 The network technology used in the IoT pet tracking system is LoRa, which operates on the unlicensed frequency spectrum. The performance of LoRa will be evaluated based on its range, throughput, and reliability. For example, a network analyzer tool, like Wireshark, will be used to capture and analyze the network traffic, and performance metrics will be recorded, such as packet delivery ratio, latency, and jitter.
 
 - Evaluation of Algorithms Used:
-The algorithms used in the IoT pet tracking system will be evaluated based on their accuracy, efficiency, and effectiveness. The accuracy of the algorithms will be measured by comparing the GPS data received by the system with the actual location of the pet. The efficiency of the algorithms will be evaluated by measuring the time taken to process the data and transmit it to the cloud. The effectiveness of the algorithms will be evaluated by measuring the system's ability to track the pet accurately, even in areas with poor network coverage.
+The algorithms used in the IoT pet tracking system is evaluated based on their accuracy, efficiency, and effectiveness. The accuracy of the algorithms is measured by comparing the GPS data received by the system with the actual location of the pet. The efficiency of the algorithms will be evaluated by measuring the time taken to process the data and transmit it to the cloud. The effectiveness of the algorithms is evaluated by measuring the system's ability to track the pet accurately, even in areas with poor network coverage.
 
 - Evaluation of Embedded Devices:
-The ESP32 LoRa devices used in the IoT pet tracking system will be evaluated based on their power consumption and energy efficiency. A power analyzer tool, such as a multimeter, will be used to measure the power consumed by the devices during operation. The data obtained will be used to calculate the energy efficiency of the devices.
+The ESP32 LoRa devices used in the IoT pet tracking system is evaluated based on their power consumption and energy efficiency, given by the implemented algorithm. A power analyzer tool, such as a multimeter, will be used to measure the power consumed by the devices during operation. The data obtained will be used to calculate the energy efficiency of the devices.
 
 - Evaluation of End-user Response Time:
-The response time of the IoT pet tracking system will be evaluated also from an end-user point of view. This will involve measuring the time taken for the system to detect the location of the pet, process the data, and send it to the cloud. The response time will be measured through the response time, and the data obtained will be used to calculate the average response time.
+The response time of the IoT pet tracking system is evaluated also from an end-user point of view. The time taken for the system to detect the location of the pet is defined in the algorithm, we had specified it in the concept file, process the data, and send it to the cloud. The response time is strictly depending on the algorithm's sampling time(specified in the concept file). 
 
-## When the First Complete Version of the System is Ready for Use :
+## First Complete Version of the System:
 
 - Evaluation of Network Technologies:
 The performance of the LoRa network will be evaluated based on its reliability, scalability, and security. The network will be tested under different conditions, such as varying distances between the devices, different network loads, and network interference. The network analyzer tool, such as Wireshark, will be used to capture and analyze the network traffic, and performance metrics will be recorded, such as packet delivery ratio, latency, and jitter.
