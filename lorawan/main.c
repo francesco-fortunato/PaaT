@@ -73,6 +73,10 @@ static uint8_t nwkskey[LORAMAC_NWKSKEY_LEN];
 static uint8_t appskey[LORAMAC_APPSKEY_LEN];
 #endif
 
+#define RECV_MSG_QUEUE                   (4U)
+static msg_t _recv_queue[RECV_MSG_QUEUE];
+static char _recv_stack[THREAD_STACKSIZE_DEFAULT];
+
 // Encryption 
 cipher_context_t cyctx;
 uint8_t key[AES_KEY_SIZE_128] = "PeShVmYq3s6v9yfB";
@@ -88,9 +92,7 @@ const char* coordinates[] = {
     "{\"lat\": 41.89059371609803, \"lng\": 12.496922330983208}",
     "{\"lat\": 41.891863645396185, \"lng\": 12.496194385513437}",
     "{\"lat\": 41.89459139551559, \"lng\": 12.49689715015853}",
-    "{\"lat\": 41.89867101472699, \"lng\": 12.499329545754307}",
-    "{\"lat\": 41.895111125939, \"lng\": 12.49598538346839}",
-    "{\"lat\": 41.89599950800407, \"lng\": 12.493933689160949}"
+    "{\"lat\": 41.89867101472699, \"lng\": 12.499329545754307}"
 };
 
 int size = sizeof(coordinates) / sizeof(coordinates[0]);
@@ -234,24 +236,19 @@ static void _send_message(void)
     pm_set(PM_LOCK_LEVEL);
 }
 
-
-void print_message(const msg_t* msg) {
-    printf("Received message: %s\n", (char*)msg->content.value);
-    // Extract the received string
-    /*char *message = (char *)msg->content.ptr;
-
-    int count = 0;
-
-    // Parse the string and extract the geofence
-    char *token = strtok(message, "[,]");
-    while (token != NULL && count < 8)
-    {
-        geofence[count] = atof(token);
-        token = strtok(NULL, ",");
-        count++;
-    }*/
+static void *_recv(void *arg)
+{
+    msg_init_queue(_recv_queue, RECV_MSG_QUEUE);
+    (void)arg;
+    while (1) {
+        /* blocks until a message is received */
+        semtech_loramac_recv(&loramac);
+        loramac.rx_data.payload[loramac.rx_data.payload_len] = 0;
+        printf("Data received: %s, port: %d\n",
+               (char *)loramac.rx_data.payload, loramac.rx_data.port);
+    }
+    return NULL;
 }
-
 
 static void *sender(void *arg)
 {
@@ -266,9 +263,6 @@ static void *sender(void *arg)
 
         /* Trigger the message send */
         _send_message();
-
-        // print message
-
 
         /* Enter sleep mode to conserve power */
         pm_set(PM_LOCK_LEVEL);
@@ -327,37 +321,14 @@ int main(void)
 #endif
     }
 #endif
-
-#ifdef USE_ABP /* ABP activation mode */
-    /* Convert identifiers and keys strings to byte arrays */
-    fmt_hex_bytes(devaddr, CONFIG_LORAMAC_DEV_ADDR_DEFAULT);
-    fmt_hex_bytes(nwkskey, CONFIG_LORAMAC_NWK_SKEY_DEFAULT);
-    fmt_hex_bytes(appskey, CONFIG_LORAMAC_APP_SKEY_DEFAULT);
-    semtech_loramac_set_devaddr(&loramac, devaddr);
-    semtech_loramac_set_nwkskey(&loramac, nwkskey);
-    semtech_loramac_set_appskey(&loramac, appskey);
-
-    /* Configure RX2 parameters */
-    semtech_loramac_set_rx2_freq(&loramac, CONFIG_LORAMAC_DEFAULT_RX2_FREQ);
-    semtech_loramac_set_rx2_dr(&loramac, CONFIG_LORAMAC_DEFAULT_RX2_DR);
-
-#ifdef MODULE_PERIPH_EEPROM
-    /* Store ABP parameters to EEPROM */
-    semtech_loramac_save_config(&loramac);
-#endif
-
-    /* Use a fast datarate, e.g. BW125/SF7 in EU868 */
-    semtech_loramac_set_dr(&loramac, LORAMAC_DR_5);
-
-    /* ABP join procedure always succeeds */
-    semtech_loramac_join(&loramac, LORAMAC_JOIN_ABP);
-#endif
     printf("Join procedure succeeded\n");
 
     /* start the sender thread */
+                            
+    thread_create(_recv_stack, sizeof(_recv_stack),
+            THREAD_PRIORITY_MAIN - 1, 0, _recv, NULL, "recv thread");
     sender_pid = thread_create(sender_stack, sizeof(sender_stack),
-                               SENDER_PRIO, THREAD_CREATE_STACKTEST, sender, NULL, "sender");
-
+                                SENDER_PRIO, THREAD_CREATE_STACKTEST, sender, NULL, "sender");
     /* trigger the first send */
     msg_t msg;
     msg_send(&msg, sender_pid);
