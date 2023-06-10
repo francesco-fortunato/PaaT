@@ -53,10 +53,10 @@
 #define PRINT_KEY_LINE_LENGTH 5
 
 
-/* By default, messages are sent every 300s to respect the duty cycle
+/* By default, messages are sent every 300s (5min) to respect the duty cycle
    on each channel */
 #ifndef SEND_PERIOD_S
-#define SEND_PERIOD_S       (60U)
+#define SEND_PERIOD_S       (300U)
 #endif
 
 /* Low-power mode level */
@@ -94,8 +94,8 @@ uint8_t key[AES_KEY_SIZE_128] = "PeShVmYq3s6v9yfB";
 uint8_t cipher[AES_KEY_SIZE_128];
 
 uint8_t *msg_to_be_sent;
+char *msg_received;
 
-float geofence[8] = {41.89869814775031, 12.499697811345177, 41.89869814775031, 12.488901615142824, 41.894850104580236, 12.488901615142824, 41.894850104580236, 12.499697811345177};
 /*
 const char* coordinates[] = {
     "{\"lat\": 41.8960156032722, \"lng\": 12.493740198896651}",
@@ -236,17 +236,48 @@ uint8_t* aes_128_encrypt(const char* msg)
     pm_set(PM_LOCK_LEVEL);
 }*/
 
-static void *_recv(void *arg)
-{
+char* hexToString(const char* hex) {
+    size_t len = strlen(hex);
+    if (len % 2 != 0) {
+        // Invalid hex string length
+        return NULL;
+    }
+
+    size_t str_len = len / 2;
+    char* str = (char*)malloc((str_len + 1) * sizeof(char));
+    if (str == NULL) {
+        // Memory allocation failed
+        return NULL;
+    }
+
+    for (size_t i = 0, j = 0; i < len; i += 2, j++) {
+        char byte[3];
+        byte[0] = hex[i];
+        byte[1] = hex[i + 1];
+        byte[2] = '\0';
+        str[j] = (char)strtol(byte, NULL, 16);
+    }
+    str[str_len] = '\0';
+
+    return str;
+}
+
+static void* _recv(void* arg) {
     msg_init_queue(_recv_queue, RECV_MSG_QUEUE);
     (void)arg;
     while (1) {
         /* blocks until a message is received */
         semtech_loramac_recv(&loramac);
-        loramac.rx_data.payload[loramac.rx_data.payload_len] = 0;
-        printf("Data received: %s, port: %d\n",
-               (char *)loramac.rx_data.payload, loramac.rx_data.port);
-            thread_sleep();
+        loramac.rx_data.payload[loramac.rx_data.payload_len] = '\0';
+        char* payload = hexToString((char*)loramac.rx_data.payload);
+        if (payload != NULL) {
+            printf("Data received: %s\n", payload);
+            msg_received = payload;
+            free(payload);
+        } else {
+            printf("Failed to convert payload to string.\n");
+        }
+        thread_sleep();
     }
     return NULL;
 }
@@ -300,57 +331,58 @@ int main(void)
     printf("Join procedure succeeded\n");
 
     /* start the sender thread */
-                            
-    
-    // Assign value to maxLat and minLat
-    for (int i = 0; i < 8; i += 2)
-    {
-        float latGF = geofence[i];
-        if (i == 0)
-        {
-            geofenceMinLat = latGF;
-            geofenceMaxLat = latGF;
-        }
-        else
-        {
-            if (latGF < geofenceMinLat)
-            {
-                geofenceMinLat = latGF;
-            }
-            if (latGF > geofenceMaxLat)
-            {
-                geofenceMaxLat = latGF;
-            }
-        }
-    }
-
-    // Assign value to maxLon and minLon
-    for (int i = 1; i < 8; i += 2)
-    {
-        float lonGF = geofence[i];
-        if (i == 1)
-        {
-            geofenceMinLng = lonGF;
-            geofenceMaxLng = lonGF;
-        }
-        else
-        {
-            if (lonGF < geofenceMinLng)
-            {
-                geofenceMinLng = lonGF;
-            }
-            if (lonGF > geofenceMaxLng)
-            {
-                geofenceMaxLng = lonGF;
-            }
-        }
-    }
-
-    printf("\nMaxLat: %f, MinLng: %f, MinLat: %f, MaxLng: %f\n",
-            geofenceMaxLat, geofenceMinLng, geofenceMinLat, geofenceMaxLng);
-
     recv_pid = thread_create(_recv_stack, sizeof(_recv_stack),
             THREAD_PRIORITY_MAIN + 1, 0, _recv, NULL, "recv thread");
+    
+    char* geo_request = (char*)malloc(strlen("geofence")+1);
+    if (geo_request == NULL)
+    {
+        printf("Failed to allocate memory for message\n");
+    }
+
+    // Construct the JSON message
+    snprintf(geo_request, strlen("geofence")+1, "geofence");
+
+    printf("Sending: %s\n", geo_request);
+    uint8_t req = semtech_loramac_send(&loramac, (uint8_t*)geo_request, strlen(geo_request));
+    if (req != SEMTECH_LORAMAC_TX_DONE)
+    {
+        printf("Cannot send message '%s', ret code: %d\n", geo_request, req);
+        //free(geo_request);
+    }
+
+    xtimer_sleep(2);
+                            
+    thread_wakeup(recv_pid);    
+
+    xtimer_sleep(2);
+
+    char* geofence[4] = {"", "", "", ""};
+
+    int count = 0;
+
+    printf("%s", msg_received);
+
+    // Parse the string and extract the geofence
+    char *token = strtok(msg_received, ",");
+    while (token != NULL && count < 4)
+    {
+        printf("token: %s", token);
+        geofence[count] = token;
+        token = strtok(NULL, ",");
+        count++;
+    }
+
+    for (int i=0; i<4; i++){
+        printf("\ngeofence[%d] = %s\n", i, geofence[i]);
+    }
+
+    float geofence_float[4];
+    for (int i = 0; i < count; i++) {
+        geofence_float[i] = atof(geofence[i]);
+        printf("geofence[%d] = %.6f\n", i, geofence_float[i]);
+    }
+
 
     xtimer_ticks32_t last = xtimer_now();
 
@@ -404,8 +436,6 @@ int main(void)
 
             xtimer_sleep(30);
 
-            //thread_wakeup(recv_pid);
-
             printf("after thread\n");
             
             xtimer_sleep(30);
@@ -418,5 +448,11 @@ int main(void)
             // Sleep for 1h
             xtimer_periodic_wakeup(&last, DELAY);
         }
+
+        /* Trigger the message send */
+
+        /* Enter sleep mode to conserve power */
+
+        /* Schedule the next wake-up alarm */
     }
 }
