@@ -56,11 +56,13 @@
 /* By default, messages are sent every 300s (5min) to respect the duty cycle
    on each channel */
 #ifndef SEND_PERIOD_S
-#define SEND_PERIOD_S       (300U)
+#define SEND_PERIOD_S       (60U)
 #endif
 
 /* Low-power mode level */
 #define PM_LOCK_LEVEL       (1)
+
+    char* geofence[4] = {"", "", "", ""};
 
 static kernel_pid_t recv_pid;
 static char _recv_stack[THREAD_STACKSIZE_DEFAULT];
@@ -83,7 +85,6 @@ static uint8_t appskey[LORAMAC_APPSKEY_LEN];
 #endif
 
 #define RECV_MSG_QUEUE                   (4U)
-#define GPS_CE_PIN GPIO_PIN(2, 0)
 
 static msg_t _recv_queue[RECV_MSG_QUEUE];
 static char _recv_stack[THREAD_STACKSIZE_DEFAULT];
@@ -94,19 +95,8 @@ uint8_t key[AES_KEY_SIZE_128] = "PeShVmYq3s6v9yfB";
 uint8_t cipher[AES_KEY_SIZE_128];
 
 uint8_t *msg_to_be_sent;
-char *msg_received;
+char* msg_received = NULL;
 
-/*
-const char* coordinates[] = {
-    "{\"lat\": 41.8960156032722, \"lng\": 12.493740198896651}",
-    "{\"lat\": 41.89167421134482, \"lng\": 12.498581879314175}",
-    "{\"lat\": 41.88977635297827, \"lng\": 12.49825531512865}",
-    "{\"lat\": 41.89339070237489, \"lng\": 12.495170117908552}",
-    "{\"lat\": 41.89059371609803, \"lng\": 12.496922330983208}",
-    "{\"lat\": 41.891863645396185, \"lng\": 12.496194385513437}",
-    "{\"lat\": 41.89459139551559, \"lng\": 12.49689715015853}",
-    "{\"lat\": 41.89867101472699, \"lng\": 12.499329545754307}"
-};*/
 float latitude = 0.0;
 float longitude = 0.0;
 int satellitesNum = 0;
@@ -236,47 +226,28 @@ uint8_t* aes_128_encrypt(const char* msg)
     pm_set(PM_LOCK_LEVEL);
 }*/
 
-char* hexToString(const char* hex) {
-    size_t len = strlen(hex);
-    if (len % 2 != 0) {
-        // Invalid hex string length
-        return NULL;
-    }
-
-    size_t str_len = len / 2;
-    char* str = (char*)malloc((str_len + 1) * sizeof(char));
-    if (str == NULL) {
-        // Memory allocation failed
-        return NULL;
-    }
-
-    for (size_t i = 0, j = 0; i < len; i += 2, j++) {
-        char byte[3];
-        byte[0] = hex[i];
-        byte[1] = hex[i + 1];
-        byte[2] = '\0';
-        str[j] = (char)strtol(byte, NULL, 16);
-    }
-    str[str_len] = '\0';
-
-    return str;
-}
-
 static void* _recv(void* arg) {
     msg_init_queue(_recv_queue, RECV_MSG_QUEUE);
     (void)arg;
     while (1) {
+        free(msg_received);
         /* blocks until a message is received */
         semtech_loramac_recv(&loramac);
         loramac.rx_data.payload[loramac.rx_data.payload_len] = '\0';
-        char* payload = hexToString((char*)loramac.rx_data.payload);
-        if (payload != NULL) {
-            printf("Data received: %s\n", payload);
-            msg_received = payload;
-            free(payload);
-        } else {
-            printf("Failed to convert payload to string.\n");
+        printf("PAYLOAD IS %s\n", (char*)loramac.rx_data.payload);
+
+        
+        // Allocate memory for msg_received
+        msg_received = (char*)malloc(loramac.rx_data.payload_len + 1);
+        if (msg_received == NULL) {
+            // Handle memory allocation error
+            fprintf(stderr, "Memory allocation failed\n");
+            exit(1);
         }
+        
+        // Copy payload into msg_received
+        strncpy(msg_received, (char*)loramac.rx_data.payload, loramac.rx_data.payload_len);
+        msg_received[loramac.rx_data.payload_len] = '\0';
         thread_sleep();
     }
     return NULL;
@@ -330,9 +301,11 @@ int main(void)
 #endif
     printf("Join procedure succeeded\n");
 
+    msg_received = (char*)malloc(1);
+
     /* start the sender thread */
     recv_pid = thread_create(_recv_stack, sizeof(_recv_stack),
-            THREAD_PRIORITY_MAIN + 1, 0, _recv, NULL, "recv thread");
+            THREAD_PRIORITY_MAIN - 1, 0, _recv, NULL, "recv thread");
     
     char* geo_request = (char*)malloc(strlen("geofence")+1);
     if (geo_request == NULL)
@@ -348,16 +321,11 @@ int main(void)
     if (req != SEMTECH_LORAMAC_TX_DONE)
     {
         printf("Cannot send message '%s', ret code: %d\n", geo_request, req);
-        //free(geo_request);
     }
+        xtimer_sleep(2);
 
-    xtimer_sleep(2);
-                            
+               
     thread_wakeup(recv_pid);    
-
-    xtimer_sleep(2);
-
-    char* geofence[4] = {"", "", "", ""};
 
     int count = 0;
 
@@ -373,18 +341,8 @@ int main(void)
         count++;
     }
 
-    for (int i=0; i<4; i++){
-        printf("\ngeofence[%d] = %s\n", i, geofence[i]);
-    }
-
-    float geofence_float[4];
-    for (int i = 0; i < count; i++) {
-        geofence_float[i] = atof(geofence[i]);
-        printf("geofence[%d] = %.6f\n", i, geofence_float[i]);
-    }
-
-
     xtimer_ticks32_t last = xtimer_now();
+
 
     while (1) {
 
@@ -427,14 +385,38 @@ int main(void)
                 free(msg_to_be_sent);
             }
             
+            thread_wakeup(recv_pid);    
 
-            // Wait for actuators. If no actions in 5 minutes, restart loop
-            printf("i'm here\n");
+            for(int i = 0; i<5; i++){
+                printf("waiting\n");
+            }
+
+            count = 0;
+            printf("Received: %s\n", msg_received);
+
+            char* tok = strtok(msg_received, ",");
+
+            // String is "true,true"
+
+            while (tok != NULL && count < 2)
+            {
+                if (count == 0)
+                {
+                    lightOn = (strcmp(tok, "true") == 0) ? true : false;
+                    tok = strtok(NULL, ",");
+                    count++;
+                }
+                else
+                {
+                    soundOn = (strcmp(tok, "true") == 0) ? true : false;
+                    count++;
+                }
+            }
+
+            printf("Light: %s, Sound: %s\n", lightOn ? "true" : "false", soundOn ? "true" : "false");
 
             free(lat_encrypted);
             free(lon_encrypted);
-
-            xtimer_sleep(30);
 
             printf("after thread\n");
             
@@ -448,11 +430,5 @@ int main(void)
             // Sleep for 1h
             xtimer_periodic_wakeup(&last, DELAY);
         }
-
-        /* Trigger the message send */
-
-        /* Enter sleep mode to conserve power */
-
-        /* Schedule the next wake-up alarm */
     }
 }
