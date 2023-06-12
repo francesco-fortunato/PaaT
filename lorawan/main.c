@@ -122,18 +122,6 @@ static bool isInGeofence(float latitude, float longitude)
     }
 }
 
-// Function to print bytes 
-void print_bytes(const uint8_t *key, size_t size) // to be removed
-{
-    for (size_t i = 0; i < size; i++)
-    {
-        if (i != 0 && i % PRINT_KEY_LINE_LENGTH == 0)
-            printf("\n");
-        printf("%02x", key[i]);
-    }
-    printf("\n");
-}
-
 // Function to convert bytes to hex string
 void bytes_to_hex_string(const uint8_t *bytes, size_t size, char *hex_string)
 {
@@ -165,8 +153,6 @@ uint8_t* aes_128_encrypt(const char* msg)
 
     aes_init(&cyctx, key, AES_KEY_SIZE_128);
 
-    //print_bytes(padded_msg, padded_len);
-
     uint8_t* encrypted_msg = malloc(padded_len);
     if (encrypted_msg == NULL) {
         printf("Failed to allocate memory\n");
@@ -177,9 +163,6 @@ uint8_t* aes_128_encrypt(const char* msg)
     {
         aes_encrypt(&cyctx, padded_msg + i, encrypted_msg + i);
     }
-
-    //printf("Encrypted:\n");
-    //print_bytes(encrypted_msg, padded_len);
 
     // Convert encrypted_msg to hex string
     char* hex_string = malloc((padded_len * 2) + 1);
@@ -192,39 +175,6 @@ uint8_t* aes_128_encrypt(const char* msg)
 
     return (uint8_t*) hex_string;
 }
-
-
-/*static void _send_message(uint8_t* lat_encrypted, uint8_t* lon_encrypted)
-{
-    // Try to send the message 
-
-    // Calculate the required message length
-    size_t message_length = 32 + 32 + 20; // "{\"lat\":\"\",\"lon\":\"\"}"
-
-    // Allocate memory for the message string dynamically
-    char *message = (char *)malloc(message_length);
-    if (message == NULL)
-    {
-        printf("Failed to allocate memory for message\n");
-        return;
-    }
-
-    // Construct the JSON message
-    snprintf(message, message_length, "{\"lat\":\"%s\",\"lon\":\"%s\"}",
-             lat_encrypted, lon_encrypted);
-
-    printf("Sending: %s\n", message);
-    uint8_t ret = semtech_loramac_send(&loramac, (uint8_t*)message, strlen(message)-1);
-    if (ret != SEMTECH_LORAMAC_TX_DONE)
-    {
-        printf("Cannot send message '%s', ret code: %d\n", message, ret);
-        free(message);
-        return;
-    }
-
-    free(message);
-    pm_set(PM_LOCK_LEVEL);
-}*/
 
 static void* _recv(void* arg) {
     msg_init_queue(_recv_queue, RECV_MSG_QUEUE);
@@ -359,21 +309,25 @@ int main(void)
 
         if (geofenceViolated)
         {
+            lightOn = true;
+            soundOn = true;
+
+            LED_ON(0);
+
             char *lati = "51.896015620074";
             char *longi ="12.242154256234";
             // encrypt msg with AES
-            printf("lati: %s, longi:%s\n", lati, longi);
             uint8_t* lat_encrypted = (uint8_t *)aes_128_encrypt(lati);
 
-            printf("lat: %s\n", lat_encrypted);
+            printf("Encrypted lat: %s\n", lat_encrypted);
 
             uint8_t* lon_encrypted = (uint8_t *)aes_128_encrypt(longi);
 
-            printf("longi: %s\n", lon_encrypted);
+            printf("Encrypted lon: %s\n", lon_encrypted);
 
             char json[500];
-            sprintf(json, "{\"lat\": \"%s\", \"lng\": \"%s\"}",
-                    lat_encrypted, lon_encrypted);
+            sprintf(json, "{\"lat\": \"%s\", \"lng\": \"%s\", \"s\": \"%d\"}",
+                    lat_encrypted, lon_encrypted, satellitesNum);
 
             msg_to_be_sent = (uint8_t *)json;
 
@@ -385,49 +339,17 @@ int main(void)
                 free(msg_to_be_sent);
             }
             
-            thread_wakeup(recv_pid);    
-
-            for(int i = 0; i<5; i++){
-                printf("waiting\n");
-            }
-
-            count = 0;
-            printf("Received: %s\n", msg_received);
-
-            char* tok = strtok(msg_received, ",");
-
-            // String is "true,true"
-
-            while (tok != NULL && count < 2)
-            {
-                if (count == 0)
-                {
-                    lightOn = (strcmp(tok, "true") == 0) ? true : false;
-                    tok = strtok(NULL, ",");
-                    count++;
-                }
-                else
-                {
-                    soundOn = (strcmp(tok, "true") == 0) ? true : false;
-                    count++;
-                }
-            }
-
-            printf("Light: %s, Sound: %s\n", lightOn ? "true" : "false", soundOn ? "true" : "false");
-
             free(lat_encrypted);
             free(lon_encrypted);
-
-            printf("after thread\n");
             
-            xtimer_sleep(30);
+            xtimer_periodic_wakeup(&last, DELAY);
         }
         else
         {
             printf("Geofence is not violated, who cares about position?\n");
-            printf("i'm here 2\n");
-
-            // Sleep for 1h
+            if (lightOn) LED_OFF(0);
+            soundOn = false;
+            lightOn = false;
             xtimer_periodic_wakeup(&last, DELAY);
         }
     }
