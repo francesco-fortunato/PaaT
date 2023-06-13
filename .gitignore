@@ -70,6 +70,8 @@ dist/
 # Ignore all configuration files
 *.aws/config
 
+**/.vscode
+
 **/*.crt
 **/*.pem
 **/*.key
