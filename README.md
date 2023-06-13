@@ -15,11 +15,12 @@ This project aims to develop a pet tracking system that utilizes an ESP32 Heltec
 
 ## Documents
 
-### First Delivery
+### Documents
 
-- [Concept](Deliveries/FirstDelivery/Concept.md)
-- [Design](Deliveries/FirstDelivery/Design.md)
-- [Evaluation](Deliveries/FirstDelivery/Evaluation.md)
+- [Presentation](https://docs.google.com/presentation/d/1p3-u78l3DJtRwXcR-sK6B_98UEg3uL_TondBaY1GaM8/edit?usp=sharing)
+- [Concept](docs/Concept.md)
+- [Design](docs/Design.md)
+- [Evaluation](docs/Evaluation.md)
 
 ## Video
 
