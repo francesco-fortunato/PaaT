@@ -24,11 +24,11 @@ Execute `cd PaaT`.
 
 #### Init submodule
 ```
-git submodules init
+git submodule init
 ```
 #### Update the submodule
 ```
-git submodules update
+git submodule update
 ```
 
 ## Documents
