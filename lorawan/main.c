@@ -1,9 +1,8 @@
 /*
- * Copyright (C) 2018 Inria
+ * Copyright (C) 2023 Francesco Fortunato, Valerio Francione, Andrea Sepielli
  *
- * This file is subject to the terms and conditions of the GNU Lesser
- * General Public License v2.1. See the file LICENSE in the top level
- * directory for more details.
+ * This file is subject to the terms and conditions of the MIT License.
+ * See the file LICENSE in the top level directory for more details.
  */
 
 /**
@@ -13,7 +12,9 @@
  * @file
  * @brief       Example demonstrating the use of LoRaWAN with RIOT
  *
- * @author      Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @authors      Francesco Fortunato <francesco.fortunato1999@gmail.com>,
+ *               Valerio Francione <francione97@gmail.com>,
+ *               Andrea Sepielli <andreasepielli97@gmail.com>
  *
  * @}
  */
@@ -48,7 +49,6 @@
 #include "crypto/aes.h"
 
 #include "led.h"
-#define DELAY (60 * US_PER_SEC)
 
 #define PRINT_KEY_LINE_LENGTH 5
 
@@ -62,7 +62,9 @@
 /* Low-power mode level */
 #define PM_LOCK_LEVEL       (1)
 
-    char* geofence[4] = {"", "", "", ""};
+#define MAX_JOIN_RETRIES 3
+
+char* geofence[4];
 
 static kernel_pid_t recv_pid;
 static char _recv_stack[THREAD_STACKSIZE_DEFAULT];
@@ -97,8 +99,8 @@ uint8_t cipher[AES_KEY_SIZE_128];
 uint8_t *msg_to_be_sent;
 char* msg_received = NULL;
 
-float latitude = 0.0;
-float longitude = 0.0;
+char* latitude;
+char* longitude;
 int satellitesNum = 0;
 bool soundOn = false;
 bool lightOn = false;
@@ -108,10 +110,71 @@ float geofenceMinLng = 0;
 float geofenceMaxLng = 0;
 bool geofenceViolated;
 
-static bool isInGeofence(float latitude, float longitude)
+static bool isInGeofence(char* latitude, char* longitude)
 {
     // TBD: THRESHOLD ERROR
-    if (latitude > geofenceMaxLat || latitude < geofenceMinLat || longitude > geofenceMaxLng || longitude < geofenceMinLng)
+    //The strcmp function returns a value greater than 0 if the first string is lexicographically greater than the second string, 
+    //a value less than 0 if the first string is lexicographically smaller than the second string, 
+    //and 0 if both strings are equal.
+    int maxlatComparison = strcmp(latitude, geofence[0]);
+    int maxlngComparison = strcmp(longitude, geofence[1]);
+    int minlatComparison = strcmp(latitude, geofence[2]);
+    int minlngComparison = strcmp(longitude, geofence[3]);
+    /*
+    if (maxlatComparison > 0)
+    {
+        printf("lat > geofence[0] (maxlat): %d\n", maxlatComparison);
+    }
+    else if (maxlatComparison < 0)
+    {
+        printf("lat < geofence[0] (maxlat): %d\n", maxlatComparison);
+    }
+    else
+    {
+        printf("lat = geofence[0] (maxlat): %d\n", maxlatComparison);
+    }
+
+    if (maxlngComparison > 0)
+    {
+        printf("lng > geofence[1] (maxlng): %d\n", maxlngComparison);
+    }
+    else if (maxlngComparison < 0)
+    {
+        printf("lng < geofence[1] (maxlng): %d\n", maxlngComparison);
+    }
+    else
+    {
+        printf("lng = geofence[1] (maxlng): %d\n", maxlngComparison);
+    }
+
+    if (minlatComparison > 0)
+    {
+        printf("lat > geofence[2] (minlat): %d\n", minlatComparison);
+    }
+    else if (minlatComparison < 0)
+    {
+        printf("lat < geofence[2] (minlat): %d\n", minlatComparison);
+    }
+    else
+    {
+        printf("lat = geofence[2] (minlat): %d\n", minlatComparison);
+    }
+
+    if (minlngComparison > 0)
+    {
+        printf("lng > geofence[3] (minlng): %d\n", minlngComparison);
+    }
+    else if (minlngComparison < 0)
+    {
+        printf("lng < geofence[3] (minlng): %d\n", minlngComparison);
+    }
+    else
+    {
+        printf("lng = geofence[3] (minlng): %d\n", minlngComparison);
+    }
+    */
+    // Compare latitude and longitude strings with geofence boundaries using strcmp
+    if (maxlatComparison > 0 || maxlngComparison > 0 || minlatComparison < 0 || minlngComparison < 0)
     {
         printf("GEOFENCE IS VIOLATED\n");
         return true;
@@ -179,28 +242,48 @@ uint8_t* aes_128_encrypt(const char* msg)
 static void* _recv(void* arg) {
     msg_init_queue(_recv_queue, RECV_MSG_QUEUE);
     (void)arg;
-    while (1) {
-        free(msg_received);
-        /* blocks until a message is received */
-        semtech_loramac_recv(&loramac);
-        loramac.rx_data.payload[loramac.rx_data.payload_len] = '\0';
-        printf("PAYLOAD IS %s\n", (char*)loramac.rx_data.payload);
+    /* blocks until a message is received */
+    semtech_loramac_recv(&loramac);
+    loramac.rx_data.payload[loramac.rx_data.payload_len] = '\0';
+    printf("PAYLOAD IS %s\n", (char*)loramac.rx_data.payload);
 
-        
-        // Allocate memory for msg_received
-        msg_received = (char*)malloc(loramac.rx_data.payload_len + 1);
-        if (msg_received == NULL) {
-            // Handle memory allocation error
-            fprintf(stderr, "Memory allocation failed\n");
-            exit(1);
-        }
-        
-        // Copy payload into msg_received
-        strncpy(msg_received, (char*)loramac.rx_data.payload, loramac.rx_data.payload_len);
-        msg_received[loramac.rx_data.payload_len] = '\0';
-        thread_sleep();
+    
+    // Allocate memory for msg_received
+    msg_received = (char*)malloc(loramac.rx_data.payload_len + 1);
+    if (msg_received == NULL) {
+        // Handle memory allocation error
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
     }
+    
+    // Copy payload into msg_received
+    strncpy(msg_received, (char*)loramac.rx_data.payload, loramac.rx_data.payload_len);
+    msg_received[loramac.rx_data.payload_len] = '\0';
+    thread_zombify();
     return NULL;
+}
+
+bool joinLoRaNetwork(void) {
+
+    int joinRetries = 0;
+
+    while (joinRetries < MAX_JOIN_RETRIES) {
+        /* Start the Over-The-Air Activation (OTAA) procedure to retrieve the
+         * generated device address and to get the network and application session
+         * keys.
+         */
+        printf("Starting join procedure (attempt %d)\n", joinRetries + 1);
+        if (semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA) == SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
+            printf("Join procedure succeeded\n");
+            return true; // Join successful, return true
+        } else {
+            printf("Join procedure failed\n");
+            joinRetries++;
+        }
+    }
+
+    printf("Exceeded maximum join retries\n");
+    return false; // Join failed after maximum retries, return false
 }
 
 int main(void)
@@ -236,10 +319,9 @@ int main(void)
         /* Start the Over-The-Air Activation (OTAA) procedure to retrieve the
          * generated device address and to get the network and application session
          * keys.
-         */
-        printf("Starting join procedure\n");
-        if (semtech_loramac_join(&loramac, LORAMAC_JOIN_OTAA) != SEMTECH_LORAMAC_JOIN_SUCCEEDED) {
-            printf("Join procedure failed\n");
+         */    
+        if (!joinLoRaNetwork()) {
+            printf("Failed to join the network\n");
             return 1;
         }
 
@@ -249,18 +331,18 @@ int main(void)
 #endif
     }
 #endif
-    printf("Join procedure succeeded\n");
-
-    msg_received = (char*)malloc(1);
 
     /* start the sender thread */
     recv_pid = thread_create(_recv_stack, sizeof(_recv_stack),
             THREAD_PRIORITY_MAIN - 1, 0, _recv, NULL, "recv thread");
+
+    xtimer_sleep(5);
     
     char* geo_request = (char*)malloc(strlen("geofence")+1);
     if (geo_request == NULL)
     {
         printf("Failed to allocate memory for message\n");
+        return 1;
     }
 
     // Construct the JSON message
@@ -272,26 +354,29 @@ int main(void)
     {
         printf("Cannot send message '%s', ret code: %d\n", geo_request, req);
     }
-        xtimer_sleep(2);
 
-               
+    free(geo_request);
+
+    xtimer_sleep(2);
+
     thread_wakeup(recv_pid);    
 
     int count = 0;
 
-    printf("%s", msg_received);
-
     // Parse the string and extract the geofence
-    char *token = strtok(msg_received, ",");
+    char* token = strtok(msg_received, ",");
     while (token != NULL && count < 4)
     {
-        printf("token: %s", token);
-        geofence[count] = token;
+        geofence[count] = (char*)malloc(strlen(token) + 1); // Allocate memory for the geofence value
+        strcpy(geofence[count], token); // Copy the geofence value
+        printf("geofence[%d] = %s\n", count, geofence[count]);
         token = strtok(NULL, ",");
         count++;
     }
 
-    xtimer_ticks32_t last = xtimer_now();
+    free(msg_received);
+
+    thread_kill_zombie(recv_pid);
 
 
     while (1) {
@@ -299,9 +384,10 @@ int main(void)
         // Wait for reliable position or timeout
         satellitesNum=4;
 
-        latitude = 51.8960156;
-        longitude = 12.4937401988;
+        latitude = "51.896015620074";
+        longitude = "12.242154256234";
 
+        printf("Latitude : %s, Longitude : %s", latitude, longitude);
         //if (satellitesNum >= 4)
         {
             geofenceViolated = isInGeofence(latitude, longitude);
@@ -342,7 +428,8 @@ int main(void)
             free(lat_encrypted);
             free(lon_encrypted);
             
-            xtimer_periodic_wakeup(&last, DELAY);
+            xtimer_sleep(60);
+                    
         }
         else
         {
@@ -350,7 +437,7 @@ int main(void)
             if (lightOn) LED_OFF(0);
             soundOn = false;
             lightOn = false;
-            xtimer_periodic_wakeup(&last, DELAY);
+            xtimer_sleep(300);
         }
     }
 }

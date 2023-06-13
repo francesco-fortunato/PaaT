@@ -1,16 +1,19 @@
 /*
- * Copyright (C) 2023 Andrea Sepielli, Francesco Fortunato, Valerio Francione
+ * Copyright (C) 2023 Francesco Fortunato, Valerio Francione, Andrea Sepielli
+ *
+ * This file is subject to the terms and conditions of the MIT License.
+ * See the file LICENSE in the top level directory for more details.
  */
 
 /**
  * @{
  *
  * @file
- * @brief       PAAT
+ * @brief       PaaT
  *
- * @authors      Andrea Sepielli <andreasepielli97@gmail.com>,
- *               Francesco Fortunato <francesco.fortunato1999@gmail.com>,
- *               Valerio Francione <francione97@gmail.com>
+ * @authors      Francesco Fortunato <francesco.fortunato1999@gmail.com>,
+ *               Valerio Francione <francione97@gmail.com>,
+ *               Andrea Sepielli <andreasepielli97@gmail.com>
  *
  * @}
  */
