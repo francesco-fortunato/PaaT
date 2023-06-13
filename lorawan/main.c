@@ -289,7 +289,7 @@ bool joinLoRaNetwork(void) {
 int main(void)
 {
     // Seed the random number generator
-    printf("LoRaWAN Class A low-power application\n");
+    printf("PaaT: a LoRaWAN Class A low-power application\n");
     printf("=====================================\n");
 
     /*
