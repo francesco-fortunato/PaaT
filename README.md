@@ -13,9 +13,25 @@ Internet of Things project for the Internet of Things Algorithm and Services 202
 
 This project aims to develop a pet tracking system that utilizes an ESP32 Heltec LoRa v2 and GPS module to track pets' movements. The system allows pet owners to monitor their pets' location, view their pets' movement history, and receive alerts when their pets leave a designated area.
 
-## Documents
+## Before Starting
+Clone the repository
+```
+https://github.com/francesco-fortunato/PaaT.git
+```
 
-### Documents
+### Init and update the submodules
+Execute `cd PaaT`.
+
+#### Init submodule
+```
+git submodules init
+```
+#### Update the submodule
+```
+git submodules update
+```
+
+## Documents
 
 - [Presentation](https://docs.google.com/presentation/d/1p3-u78l3DJtRwXcR-sK6B_98UEg3uL_TondBaY1GaM8/edit?usp=sharing)
 - [Concept](docs/Concept.md)
