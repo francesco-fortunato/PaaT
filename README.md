@@ -3,11 +3,11 @@ Internet of Things project for the Internet of Things Algorithm and Services 202
 
 ## People
 
-[Andrea Sepielli](https://www.linkedin.com/in/andreasepielli/)
-
 [Francesco Fortunato](https://www.linkedin.com/in/francesco-fortunato-a68094181/) 
 
 [Valerio Francione](https://www.linkedin.com/in/valerio-f-9000a557/)
+
+[Andrea Sepielli](https://www.linkedin.com/in/andreasepielli/)
 
 ## Description
 
