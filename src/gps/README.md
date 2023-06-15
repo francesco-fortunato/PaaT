@@ -1,3 +1,7 @@
+# Paat using Wi-Fi connection and MQTT
+
+#### UART PIN CONFIGURATION ON ESP32 HELTEC LORA32 WIFI (V2)
+
 In order to let the E108-GN02D GPS module work with ESP32 Heltec Lora V2 in Riot OS, we should edit the default pins of UART configuration:
 
 Open the file `RIOT/boards/esp32-heltec-lora32-v2/include/periph_conf.h`

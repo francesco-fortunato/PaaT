@@ -5,7 +5,7 @@ APPLICATION = lorawan
 BOARD ?= b-l072z-lrwan1
 
 # This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/../RIOT
+RIOTBASE ?= $(CURDIR)/../../RIOT
 
 # Change this to abp to enable Activation By Personnalization mode
 ACTIVATION_MODE ?= otaa
