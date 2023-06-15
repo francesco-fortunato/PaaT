@@ -3,6 +3,7 @@ import paho.mqtt.publish as publish
 import pyconfig
 import boto3
 import base64
+import time
 
 def on_message(client, userdata, message):
     global counter  # Use the global counter variable
@@ -11,9 +12,6 @@ def on_message(client, userdata, message):
     payload_str = message.payload.decode('utf-8')  # Convert bytes to string
     print(payload_str)
 
-
-    # Check if the topic and payload match the desired condition
-#    if message.topic == 'v3/flamex@ttn/devices/eui-70b3d57ed005d56f/up' and message.payload == b'geofence':
     # Publish a new message
     if (message.topic == "v3/flamex@ttn/devices/eui-70b3d57ed005d56f/join"):
         dynamodb = boto3.resource('dynamodb',
@@ -41,10 +39,11 @@ def on_message(client, userdata, message):
             combined_item.append(float(item['lng']))
         
         # combined item is [lat1, lng1, lat2, lng2, lat3, lng3, lat4, lng4].
-        maxlat = str(max(combined_item[::2]))
-        maxlng = str(max(combined_item[1::2]))
-        minlat = str(min(combined_item[::2]))
-        minlng = str(min(combined_item[1::2]))
+        #take the extreme values, add an error of ca. 15 meters
+        maxlat = str((max(combined_item[::2])) + 0.00015)
+        maxlng = str((max(combined_item[1::2])) + 0.00015)
+        minlat = str((min(combined_item[::2])) - 0.00015)
+        minlng = str((min(combined_item[1::2])) - 0.00015)
 
         maxlat = maxlat[:15].ljust(15, '0')
         maxlng = maxlng[:15].ljust(15, '0')
@@ -61,7 +60,18 @@ def on_message(client, userdata, message):
             port=1883,
             auth={'username': pyconfig.USERNAME, 'password': pyconfig.PASSWORD}
         )
+
         print('ho pubblicato la geofence')
+        
+        time.sleep(60)
+        
+        publish.single(
+                "v3/flamex@ttn/devices/eui-70b3d57ed005d56f/down/replace",
+                payload='{"downlinks":[{"f_port": 2,"frm_payload":"","confirmed": true, "priority": "HIGH"}]}',
+                hostname="eu1.cloud.thethings.network",
+                port=1883,
+                auth={'username': pyconfig.USERNAME, 'password': pyconfig.PASSWORD}
+            )
     
 subscribe.callback(
     on_message,
