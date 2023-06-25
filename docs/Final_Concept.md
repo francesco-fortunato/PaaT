@@ -1,5 +1,7 @@
 # Concept 
 
+This document serves as the final concept report for the project. For the previous version, please refer to [this link](https://github.com/francesco-fortunato/PaaT/blob/main/docs/Concept.md).
+
 ![alt](img/iotworlds_dog_tracker-960x648.jpg)
 
 ## The Problem 
