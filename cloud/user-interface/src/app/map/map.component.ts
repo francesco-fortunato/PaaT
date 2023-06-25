@@ -247,34 +247,23 @@ export class MapComponent {
         this.petService.getLatestPetPath(1).subscribe(
           (
             res: {
-              device_data: {
-                last_movement: number;
-                latitude: number;
-                sound: number;
-                longitude: number;
-                sat_num: number;
-              };
               device_id: number;
               sample_time: number;
+              Longitude: number;
+              Latitude: number;
+              Satellites: number;
             }[]
           ) => {
             const response = res.sort((a, b) => a.sample_time - b.sample_time);
             const timelinePositions: L.LatLng[] = response.map(
               (position: {
-                device_data: {
-                  last_movement: number;
-                  latitude: number;
-                  sound: number;
-                  longitude: number;
-                  sat_num: number;
-                };
                 device_id: number;
                 sample_time: number;
+                Longitude: number;
+                Latitude: number;
+                Satellites: number;
               }) => {
-                return L.latLng([
-                  position.device_data.latitude,
-                  position.device_data.longitude,
-                ]);
+                return L.latLng([position.Latitude, position.Longitude]);
               }
             );
 
