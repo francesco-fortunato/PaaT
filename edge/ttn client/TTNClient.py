@@ -62,16 +62,6 @@ def on_message(client, userdata, message):
         )
 
         print('ho pubblicato la geofence')
-        
-        time.sleep(60)
-        
-        publish.single(
-                "v3/flamex@ttn/devices/eui-70b3d57ed005d56f/down/replace",
-                payload='{"downlinks":[{"f_port": 2,"frm_payload":"","confirmed": true, "priority": "HIGH"}]}',
-                hostname="eu1.cloud.thethings.network",
-                port=1883,
-                auth={'username': pyconfig.USERNAME, 'password': pyconfig.PASSWORD}
-            )
     
 subscribe.callback(
     on_message,
