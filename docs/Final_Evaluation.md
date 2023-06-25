@@ -25,6 +25,7 @@ insead the smallest correspond to the response message. Below is possible to see
 Thanks to the test provided with Fit-Iot lab, we could determinate the consumption for the radio part, simply calculating the area delimited by the curve of the messages. So we have:
 
 Send message: (Base x Height) + (Base x Height) = (0.2 x 0.19) + (0.04 x 0.033) = 0.03932 W 
+
 Response message: Base x Height = 0.1 x 0.055 = 0.0055 W 
 
 To calculate the consumption of the entire system we have obviously add the consumption of all the sensors, to do that we had provided this table:
