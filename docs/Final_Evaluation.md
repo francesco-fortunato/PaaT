@@ -1,39 +1,51 @@
-# EVALUATION
+# Evaluation Report
 
-This is the final evaluation file. The previous version could be found [here](https://github.com/francesco-fortunato/PaaT/blob/main/docs/Evaluation.md).
+This document serves as the final evaluation report for the project. For the previous version, please refer to [this link](https://github.com/francesco-fortunato/PaaT/blob/main/docs/Evaluation.md).
 
 To evaluate the product we studied and investigated the connection via LoRa and the power consumption and management,
 due to the activation of GPS only in case the animal is inside the geofence, and GPS combined with buzzer and LED in case the animal is outside the geofence instead.
+The evaluation primarily focused on two key aspects: the LoRaWAN connection and power consumption and management. Detailed investigations were conducted to understand and to assess the power requirements and consumption patterns of the prototype. The following sections provide a thorough overview of the evaluation findings.
 
-# LoRawan connection
+## LoRaWAN
 
-As for the lora test, we used the tool offered by Fit-Iot lab. Here we uploaded the code we developed for sending the data, and these are the results obtained:
+To evaluate the LoRaWAN connection, a specialized tool offered by FIT IoT-LAB was utilized. The developed code for transmitting data was uploaded to the tool, and a series of tests were conducted. The test results demonstrated the performance of the LoRaWAN connection, with specific attention given to power consumption during data transmission.
+
+The obtained results are graphically represented in the figure below:
 
 ![LoRa test](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/LoRa%20test.png)
 
-As we can see, there are picks of consumption in correspondence with the sending of messages, the highest one correspond to the sending message, 
-insead the smallest correspond to the response message. Below is possible to see that picks more in detail:
+The graph reveals distinctive peaks in power consumption corresponding to message transmissions. Notably, the highest peak corresponds to the sending of messages, while the smallest peak aligns with the reception of response messages. To further analyze these peaks, detailed breakdowns are presented in the subsequent figures:
+
+- Sending and response messages in detail:
 
 ![Sending and response messages in details](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Send-Receive.png)
 
+- Power consumption during message transmission:
 ![Send message](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Send.png)
 
+- Power consumption during response message reception:
 ![Response message](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Receive.png)
 
-# Power consumption
+## Power Consumption Assessment
 
-Thanks to the test provided with Fit-Iot lab, we could determinate the consumption for the radio part, simply calculating the area delimited by the curve of the messages. So we have:
+A comprehensive assessment of power consumption was conducted to gain a comprehensive understanding of the product's energy needs. The evaluation took into account the power requirements of the entire system. Thanks to the tool provided by FIT IoT-LAB, it was possible to accurately determine the power consumption specific to the radio component. This was achieved by calculating the area under the curve of power consumption during uplink transmission.
 
-Send message: (Base x Height) + (Base x Height) = (0.2 x 0.19) + (0.04 x 0.033) = 0.03932 W 
+Uplink: (Base x Height) + (Base x Height) = (0.2 x 0.19) + (0.04 x 0.033) = 0.03932 W 
 
-Response message: Base x Height = 0.1 x 0.055 = 0.0055 W 
+Similarly, the power consumption for receiving a response message was calculated as:
 
-To calculate the consumption of the entire system we have obviously add the consumption of all the sensors, to do that we had provided this table:
-![Power consumption table](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Power%20consumption%20table.png)
+Downlink: Base x Height = 0.1 x 0.055 = 0.0055 W 
 
-Given that data about the consumption we can do some consideration inherent the autonomy of the system, to do that we have provided the consumption of the whole system based on various sampling time: 
+## System Autonomy Considerations
 
-![Estimation table](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Estimation%20table.png)
+To provide a complete view of the system's power requirements, a comprehensive power consumption table has been prepared, which includes all relevant sensor components:
 
-Our idea is to use a sampling time of 5 minutes when the pet go out the geofence, and in this case, with a battery of 2400 mAh, we could say that the autonomy of the system is at least of 1 day.
-In case the pet remain inside the geofence we provide a sampling time of 1 hour, and given the consumption above, with the same battery of 2400 mAh the system could work for 2 days.
+![Power Consumption Table](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Power%20consumption%20table.png)
+
+By analyzing the collected consumption data, it becomes possible to make accurate considerations regarding the system's autonomy. To this end, an estimation table was created, outlining the system's consumption based on various sampling times:
+
+![Estimation Table](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Estimation%20table.png)
+
+The proposed approach suggests utilizing a sampling time of 5 minutes when the pet ventures beyond the geofence. With a 2400 mAh battery, the system is estimated to maintain a minimum autonomy of 1 day under these circumstances. Conversely, if the pet remains within the geofence, a sampling time of 1 hour is recommended. Based on the earlier power consumption figures and employing the same 2400 mAh battery, the system can operate for approximately 2 days.
+
+These values are too high, for what we expect
