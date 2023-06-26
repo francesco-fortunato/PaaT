@@ -34,9 +34,9 @@ git submodule update
 ## Documents
 
 - [Presentation](https://docs.google.com/presentation/d/1p3-u78l3DJtRwXcR-sK6B_98UEg3uL_TondBaY1GaM8/edit?usp=sharing)
-- [Concept](docs/Concept.md)
-- [Design](docs/Design.md)
-- [Evaluation](docs/Evaluation.md)
+- [Concept](docs/Final_Concept.md)
+- [Design](docs/Final_Design.md)
+- [Evaluation](docs/Final_Evaluation.md)
 
 ## Video
 
