@@ -33,7 +33,7 @@ GPS system used for tracking pets already exists, but they presents some lacks:
 - GSM subscription is **costly** due to licencing (**€60/year**)
 
 An **IoT GPS system**, insted, could provide:
-- A **solution** for all the requrements above.
+- A **solution** for all the requirements above.
 - **Improved Recovery Rates**: in case a pet gets lost, the tracking capability and low power consumption of significantly increases the chances of finding and recovering them.
 - **Continuous Monitoring**: owners can access to information about their pet's movements and behavior patterns over time. 
 - **Remote Access**: owners can remotely access their pet's location information through mobile applications or web interfaces.
