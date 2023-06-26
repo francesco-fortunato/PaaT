@@ -77,4 +77,4 @@ Pet owners can access the system's features through a web interface. The web int
 When pet owners set up geofencing, they can define a specific area where their pet is allowed to roam. If the pet leaves the designated area, the system sends an alert to the pet owner's email address. Pet owners can then use the web interface to track their pet's location and retrieve their pet.
 
 ## Conclusion
-Pet tracking is a crucial aspect of pet ownership, and this IoT Pet Tracking System can provide a reliable and efficient solution for pet owners. With location tracking, geofencing, movement history, and notifications, pet owners can keep an eye on their pets' location and ensure their pets' safety, improve recovery rates, and so o.
+Pet tracking is a crucial aspect of pet ownership, and this IoT Pet Tracking System can provide a reliable and efficient solution for pet owners. With location tracking, geofencing, movement history, and notifications, pet owners can keep an eye on their pets' location and ensure their pets' safety, improve recovery rates, and so on.
