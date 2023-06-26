@@ -31,13 +31,25 @@ git submodule init
 git submodule update
 ```
 
-## Documents
+[Link to the user interface](https://main.d24229we7y3qnn.amplifyapp.com/)
 
-- [Presentation](https://docs.google.com/presentation/d/1p3-u78l3DJtRwXcR-sK6B_98UEg3uL_TondBaY1GaM8/edit?usp=sharing)
+## Final Delivery
+
 - [Concept](docs/Final_Concept.md)
 - [Design](docs/Final_Design.md)
 - [Evaluation](docs/Final_Evaluation.md)
 
-## Video
+- [Presentation](https://docs.google.com/presentation/d/1p3-u78l3DJtRwXcR-sK6B_98UEg3uL_TondBaY1GaM8/edit?usp=sharing)
 
-[Link to Youtube Video](https://youtu.be/oAYv7sOTY6s)
+- [Blog Post](https://www.hackster.io/paat/a-low-power-geofencing-application-with-riot-os-and-iot-lab-8825f0)
+- [Demo]()
+- [Presentation]()
+
+
+## First Delivery
+
+- [Concept](docs/Concept.md)
+- [Design](docs/Design.md)
+- [Evaluation](docs/Evaluation.md)
+
+- [Link to Youtube Video](https://youtu.be/oAYv7sOTY6s)
