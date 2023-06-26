@@ -53,7 +53,7 @@ So, we based user requirements on the precedent ones (that were not satisfied) a
 
 - Accuracy:
   - **10-15m**, that is a sufficient range in order to be able for the user to find his pet.
-  - **False positive** and **false negative** has to be detectedable.
+  - **False positive** and **false negative** has to be detectable.
 
 - Security: 
   - data exchanged by the application must be **encrypted** in order to hide sensitive information (like the position of the pet) to malicious attackers, providing **confidentiality** to the end user.
