@@ -48,7 +48,7 @@ By analyzing the collected consumption data, it becomes possible to make accurat
 
 The proposed approach suggests utilizing a sampling time of 5 minutes when the pet ventures beyond the geofence. With a 2400 mAh battery, the system is estimated to maintain a minimum autonomy of 1 day under these circumstances. Conversely, if the pet remains within the geofence, a sampling time of 1 hour is recommended. Based on the earlier power consumption figures and employing the same 2400 mAh battery, the system can operate for approximately 2 days.
 
-## Future improvements
+## Observation
 
 From the autonomy considerations, we see that the major consumption derives from the board, that because in Riot, at the moment, is not possible to use the deep sleep mode of the board which guarantee a greater energy savings during system downtime.
 
