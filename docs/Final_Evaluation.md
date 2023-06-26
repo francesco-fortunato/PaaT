@@ -50,7 +50,7 @@ The proposed approach suggests utilizing a sampling time of 5 minutes when the p
 
 ## Future improvements
 
-From the autonomy consuìiderations, we see that the major consumption derives from the board, that because in Riot, at the moment, is not possible to use the deep sleep mode of the board which guarantee a greater energy savings during system downtime.
+From the autonomy considerations, we see that the major consumption derives from the board, that because in Riot, at the moment, is not possible to use the deep sleep mode of the board which guarantee a greater energy savings during system downtime.
 
 We have also studied this possibility and recalculated the values inherent in power consumption if we had the option of using this mode, and from that we have provided the new table:
 
