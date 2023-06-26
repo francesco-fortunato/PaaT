@@ -48,4 +48,18 @@ By analyzing the collected consumption data, it becomes possible to make accurat
 
 The proposed approach suggests utilizing a sampling time of 5 minutes when the pet ventures beyond the geofence. With a 2400 mAh battery, the system is estimated to maintain a minimum autonomy of 1 day under these circumstances. Conversely, if the pet remains within the geofence, a sampling time of 1 hour is recommended. Based on the earlier power consumption figures and employing the same 2400 mAh battery, the system can operate for approximately 2 days.
 
-These values are too high, for what we expect
+## Future improvements
+
+From the autonomy consuìiderations, we see that the major consumption derives from the board, that because in Riot, at the moment, is not possible to use the deep sleep mode of the board which guarantee a greater energy savings during system downtime.
+
+We have also studied this possibility and recalculated the values inherent in power consumption if we had the option of using this mode, and from that we have provided the new table:
+
+![New Power Consumption Table](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Power%20Consumption%20Table%20in%20deep%20sleep.png)
+
+Under the new hypothesis we have redefined the consumption of the system. In the first row it is possible to notice the huge battery saving when deep sleep mode is introduced whenever the pet is located inside the geofence. In the second row are shown the new values of consumption with smaller power cycles of light and sound (0.4 sec ON / 1 sec OFF): 
+
+![New Estimation Table](https://github.com/francesco-fortunato/PaaT/blob/main/docs/img/Estimation%20Table%20deep%20sleep.png)
+
+The new values of consumption open a new scenario in which with a battery of 2400mAh and a sampling time of 1 hour, if the device stays always inside the geofence the battery can last up to 35.5 days.
+Outside geofence can be also noticed a reduction in consumption of about 500mAh.
+
