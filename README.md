@@ -46,7 +46,7 @@ git submodule update
 
 - [Blog Post](https://www.hackster.io/paat/a-low-power-geofencing-application-with-riot-os-and-iot-lab-8825f0)
 - [Demo](https://youtu.be/FwU-OgtWOeE)
-- [Presentation]()
+- [Presentation](https://youtu.be/GNf6_sShy98)
 
 
 ## First Delivery
